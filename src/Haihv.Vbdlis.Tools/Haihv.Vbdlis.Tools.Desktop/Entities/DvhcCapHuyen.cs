@@ -3,7 +3,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Haihv.Tools.Hsq.Entities;
+namespace Haihv.Vbdlis.Tools.Desktop.Entities;
 
 /// <summary>
 /// Entity cho bảng DvhcCapHuyen trong database

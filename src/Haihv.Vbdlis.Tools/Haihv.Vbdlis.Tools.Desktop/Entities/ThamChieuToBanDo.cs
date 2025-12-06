@@ -1,13 +1,16 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Haihv.Tools.Hsq.Entities;
+namespace Haihv.Vbdlis.Tools.Desktop.Entities;
 
 /// <summary>
 /// Entity lưu thông tin về tham chiếu tờ bản đồ (cũ - mới)
 /// </summary>
 [Table("ThamChieuToBanDo")]
+[Index(nameof(TinhId), nameof(XaId))]
+[Index(nameof(SoToBanDo))]
 public class ThamChieuToBanDo
 {
     /// <summary>
@@ -24,6 +27,7 @@ public class ThamChieuToBanDo
     /// <summary>
     /// Số tờ bản đồ cũ
     /// </summary>
+    [MaxLength(100)]
     public string SoToBanDoCu { get; set; } = string.Empty;
 
     /// <summary>

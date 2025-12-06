@@ -3,7 +3,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Haihv.Tools.Hsq.Entities;
+namespace Haihv.Vbdlis.Tools.Desktop.Entities;
 
 /// <summary>
 /// Entity cho bảng DvhcCapXa trong database
@@ -32,6 +32,8 @@ public class DvhcCapXa
     /// <summary>
     /// Tên Đơn vị hành chính cấp xã
     /// </summary>
+    [Required]
+    [MaxLength(255)]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
@@ -42,9 +44,10 @@ public class DvhcCapXa
     /// <summary>
     /// Ngày tạo bản ghi
     /// </summary>
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
     /// <summary>
     /// Ngày cập nhật bản ghi
     /// </summary>
-    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
