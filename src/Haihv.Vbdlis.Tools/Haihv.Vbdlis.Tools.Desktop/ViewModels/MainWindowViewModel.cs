@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Threading.Tasks;
 using Haihv.Vbdlis.Tools.Desktop.Services;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 
 namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
 {
@@ -79,8 +81,14 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
 
         private void OnLoginCancelled(object? sender, EventArgs e)
         {
-            // Handle login cancellation if needed
-            // For now, just stay on login screen
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                desktop.Shutdown();
+            }
+            else
+            {
+                Environment.Exit(0);
+            }
         }
 
         [RelayCommand]

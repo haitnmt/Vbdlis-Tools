@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Haihv.Vbdlis.Tools.Desktop.Models;
 using Microsoft.Playwright;
 
 namespace Haihv.Vbdlis.Tools.Desktop.Services
@@ -39,6 +40,16 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         /// Clears all browser data (cookies, local storage, session storage, etc.)
         /// </summary>
         Task ClearBrowserDataAsync();
+
+        /// <summary>
+        /// Caches the most recent successful login credentials in memory.
+        /// </summary>
+        void CacheLoginInfo(string server, string username, string password, bool headlessBrowser);
+
+        /// <summary>
+        /// Gets the cached login credentials, if any.
+        /// </summary>
+        LoginSessionInfo? CachedLoginInfo { get; }
 
         /// <summary>
         /// Checks if the browser is initialized

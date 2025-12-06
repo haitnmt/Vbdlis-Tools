@@ -86,14 +86,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
                 {
                     // Fallback: Just raise success event without browser automation
                     UpdateLoginStatus("Đăng nhập thành công.");
-                    LoginSuccessful?.Invoke(this, new LoginEventArgs
-                    {
-                        Server = Server,
-                        Username = Username,
-                        Password = Password,
-                        RememberMe = RememberMe,
-                        HeadlessBrowser = HeadlessBrowser
-                    });
+                    NotifyLoginSuccess();
                 }
             }
             catch (Exception ex)
@@ -121,7 +114,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
             var page = (pages == null || pages.Count == 0) ? await _playwrightService.NewPageAsync() : pages[0];
 
             // Navigate to server
-            UpdateLoginStatus("Đang mở trang đăng nhập...");
+            UpdateLoginStatus("Đang kết nối đến máy chủ...");
             await page.GotoAsync(Server);
 
             // Wait for navigation and check if redirected to login page
@@ -133,7 +126,6 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
             // Check if redirected to authentication page
             if (currentUrl.Contains("authen.mplis.gov.vn/account/login"))
             {
-                UpdateLoginStatus("Đang chuẩn bị biểu mẫu đăng nhập...");
                 await PerformLoginAsync(page);
             }
             else
@@ -153,14 +145,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
                     {
                         // Already logged in with correct user
                         UpdateLoginStatus("Đăng nhập thành công.");
-                        LoginSuccessful?.Invoke(this, new LoginEventArgs
-                        {
-                            Server = Server,
-                            Username = Username,
-                            Password = Password,
-                            RememberMe = RememberMe,
-                            HeadlessBrowser = HeadlessBrowser
-                        });
+                        NotifyLoginSuccess();
                     }
                     else
                     {
@@ -202,6 +187,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
 
         private async Task PerformLoginAsync(IPage page)
         {
+            UpdateLoginStatus("Đang điền thông tin đăng nhập...");
             // Need to login - fill in login form
             await page.FillAsync("input[name='username']", Username);
             await page.FillAsync("input[name='password']", Password);
@@ -222,14 +208,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
                 await page.WaitForSelectorAsync("a.user-profile b", new PageWaitForSelectorOptions { Timeout = 15000 });
                 // Login successful
                 UpdateLoginStatus("Đăng nhập thành công.");
-                LoginSuccessful?.Invoke(this, new LoginEventArgs
-                {
-                    Server = Server,
-                    Username = Username,
-                    Password = Password,
-                    RememberMe = RememberMe,
-                    HeadlessBrowser = HeadlessBrowser
-                });
+                NotifyLoginSuccess();
             }
             else
             {
@@ -263,6 +242,20 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
         private void UpdateLoginStatus(string message)
         {
             LoginStatusMessage = message;
+        }
+
+        private void NotifyLoginSuccess()
+        {
+            _playwrightService?.CacheLoginInfo(Server, Username, Password, HeadlessBrowser);
+
+            LoginSuccessful?.Invoke(this, new LoginEventArgs
+            {
+                Server = Server,
+                Username = Username,
+                Password = Password,
+                RememberMe = RememberMe,
+                HeadlessBrowser = HeadlessBrowser
+            });
         }
 
         partial void OnServerChanged(string value)

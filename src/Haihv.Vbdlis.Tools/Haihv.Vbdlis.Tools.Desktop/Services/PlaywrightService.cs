@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Haihv.Vbdlis.Tools.Desktop.Models;
 using Microsoft.Playwright;
 
 namespace Haihv.Vbdlis.Tools.Desktop.Services
@@ -18,10 +19,12 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         private IBrowserContext? _context;
         private string? _userDataDirectory;
         private bool _disposed;
+        private LoginSessionInfo? _cachedLoginInfo;
 
         public IBrowserContext? Context => _context;
         public IBrowser? Browser => _browser;
         public bool IsInitialized => _context != null && _browser != null;
+        public LoginSessionInfo? CachedLoginInfo => _cachedLoginInfo;
 
         /// <summary>
         /// Initializes the Playwright browser with persistent context
@@ -140,7 +143,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             {
                 // Create a copy of the pages collection to avoid modification during enumeration
                 var pages = _context.Pages.ToList();
-                
+
                 // Close all pages
                 foreach (var page in pages)
                 {
@@ -183,6 +186,11 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     throw new IOException($"Failed to clear browser data: {ex.Message}", ex);
                 }
             }
+        }
+
+        public void CacheLoginInfo(string server, string username, string password, bool headlessBrowser)
+        {
+            _cachedLoginInfo = new LoginSessionInfo(server, username, password, headlessBrowser);
         }
 
         public void Dispose()

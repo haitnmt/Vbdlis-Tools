@@ -1,69 +1,76 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:Haihv.Vbdlis.Tools.Desktop.ViewModels"
-        xmlns:controls="using:Haihv.Vbdlis.Tools.Desktop"
-        xmlns:sidebarControls="using:Haihv.Vbdlis.Tools.Desktop.Views.Controls"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
-        x:Class="Haihv.Vbdlis.Tools.Desktop.Views.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="Công cụ VBDLIS"
-        Width="1200"
-        Height="700">
+<Window
+    x:Class="Haihv.Vbdlis.Tools.Desktop.Views.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Haihv.Vbdlis.Tools.Desktop"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:sidebarControls="using:Haihv.Vbdlis.Tools.Desktop.Views.Controls"
+    xmlns:vm="using:Haihv.Vbdlis.Tools.Desktop.ViewModels"
+    Title="Công cụ VBDLIS"
+    Width="1200"
+    Height="700"
+    d:DesignHeight="700"
+    d:DesignWidth="1200"
+    x:DataType="vm:MainWindowViewModel"
+    Icon="/Assets/avalonia-logo.ico"
+    mc:Ignorable="d">
 
     <Design.DataContext>
-        <vm:MainWindowViewModel/>
+        <vm:MainWindowViewModel />
     </Design.DataContext>
 
-    <!-- Main Content: Show Login or Home based on IsLoggedIn -->
+    <!--  Main Content: Show Login or Home based on IsLoggedIn  -->
     <Panel>
-        
-        <!-- Login Screen (shown when not logged in) -->
-        <Grid IsVisible="{Binding !IsLoggedIn}"
-              Background="{DynamicResource SystemAltHighColor}">
-            <controls:LoginControl 
-                DataContext="{Binding LoginViewModel}"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"/>
-        </Grid>
 
-        <!-- Main Application (shown when logged in) -->
-        <DockPanel IsVisible="{Binding IsLoggedIn}">
-            
-            <!-- Sidebar -->
-            <sidebarControls:SidebarControl 
-                DockPanel.Dock="Left" 
-                Width="266"
-                x:Name="SidebarControl"/>
-            
-            <!-- Main Content Area -->
+        <!--  Login Screen (shown when not logged in)  -->
+        <Grid Background="{DynamicResource SystemAltHighColor}" IsVisible="{Binding !IsLoggedIn}">
+            <controls:LoginControl
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                DataContext="{Binding LoginViewModel}" />
+        </Grid>
+        <!--  Main Application (shown when logged in)  -->
+        <SplitView
+            DisplayMode="Inline"
+            IsPaneOpen="True"
+            IsVisible="{Binding IsLoggedIn}"
+            OpenPaneLength="296">
+            <SplitView.Pane>
+                <!--  Sidebar  -->
+                <sidebarControls:SidebarControl x:Name="SidebarControl" />
+            </SplitView.Pane>
+
+            <!--  Main Content Area  -->
             <Grid Background="White">
-                <!-- This is where your main content will go -->
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
-                    <TextBlock Text="Trang chủ" 
-                              FontSize="32" 
-                              FontWeight="Bold"
-                              HorizontalAlignment="Center"/>
+                <!--  This is where your main content will go  -->
+                <StackPanel
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="10">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="32"
+                        FontWeight="Bold"
+                        Text="Trang chủ" />
                     <TextBlock HorizontalAlignment="Center">
-                        <Run Text="Xin chào, "/>
-                        <Run Text="{Binding LoggedInUsername}" FontWeight="Bold"/>
+                        <Run Text="Xin chào, " />
+                        <Run FontWeight="Bold" Text="{Binding LoggedInUsername}" />
                     </TextBlock>
-                    <TextBlock Text="{Binding LoggedInServer}" 
-                              HorizontalAlignment="Center"
-                              Foreground="Gray"/>
-                    
-                    <!-- Logout Button for testing -->
-                    <Button Content="Đăng xuất" 
-                            Command="{Binding LogoutCommand}"
-                            HorizontalAlignment="Center"
-                            Margin="0,20,0,0"/>
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Foreground="Gray"
+                        Text="{Binding LoggedInServer}" />
+
+                    <!--  Logout Button for testing  -->
+                    <Button
+                        Margin="0,20,0,0"
+                        HorizontalAlignment="Center"
+                        Command="{Binding LogoutCommand}"
+                        Content="Đăng xuất" />
                 </StackPanel>
             </Grid>
-            
-        </DockPanel>
-        
+        </SplitView>
     </Panel>
 
 </Window>

@@ -1,17 +1,23 @@
 using System;
+using System.Diagnostics;
 using System.IO;
+using System.Runtime.Versioning;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Haihv.Vbdlis.Tools.Desktop.Models;
 
 namespace Haihv.Vbdlis.Tools.Desktop.Services
 {
     /// <summary>
-    /// Service for storing login credentials securely using DPAPI (Windows Data Protection API)
+    /// Service for storing login credentials securely using DPAPI (Windows) or Keychain (macOS)
     /// </summary>
     public class CredentialService : ICredentialService
     {
         private readonly string _credentialsFilePath;
+        private const string MacServiceName = "Haihv.Vbdlis.Tools";
+        private const string MacAccountName = "CurrentSession";
 
         public CredentialService()
         {
@@ -26,52 +32,86 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
 
         public async Task SaveCredentialsAsync(string server, string username, string password, bool headlessBrowser)
         {
-            var credentials = new SavedCredentials
-            {
-                Server = server,
-                Username = username,
-                Password = password,
-                HeadlessBrowser = headlessBrowser
-            };
-
+            var credentials = new LoginSessionInfo(server, username, password, headlessBrowser);
             var json = JsonSerializer.Serialize(credentials);
-            var encryptedData = ProtectData(json);
 
-            await File.WriteAllBytesAsync(_credentialsFilePath, encryptedData);
+            if (OperatingSystem.IsWindows())
+            {
+                var plainBytes = Encoding.UTF8.GetBytes(json);
+                // Use DPAPI to encrypt data for the current user
+                byte[] additionalEntropy = Encoding.UTF8.GetBytes("Haihv.Vbdlis.Tools.Entropy");
+                var encryptedBytes = ProtectedData.Protect(plainBytes, additionalEntropy, DataProtectionScope.CurrentUser);
+                var encryptedBase64 = Convert.ToBase64String(encryptedBytes);
+                await File.WriteAllTextAsync(_credentialsFilePath, encryptedBase64);
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                // Use macOS Keychain via 'security' CLI
+                // -a: Account, -s: Service, -w: Password data, -U: Update if exists
+                RunSecurityCommand("add-generic-password", "-a", MacAccountName, "-s", MacServiceName, "-w", json, "-U");
+            }
+            else
+            {
+                throw new PlatformNotSupportedException("Credential storage is only supported on Windows and macOS.");
+            }
         }
 
         public async Task<(string server, string username, string password, bool headlessBrowser)?> LoadCredentialsAsync()
         {
-            if (!File.Exists(_credentialsFilePath))
-            {
-                return null;
-            }
-
             try
             {
-                var encryptedData = await File.ReadAllBytesAsync(_credentialsFilePath);
-                var json = UnprotectData(encryptedData);
-                var credentials = JsonSerializer.Deserialize<SavedCredentials>(json);
+                string? json = null;
 
-                if (credentials == null)
+                if (OperatingSystem.IsWindows())
                 {
-                    return null;
+                    if (!File.Exists(_credentialsFilePath)) return null;
+
+                    var encryptedBase64 = await File.ReadAllTextAsync(_credentialsFilePath);
+                    if (string.IsNullOrWhiteSpace(encryptedBase64)) return null;
+
+                    var encryptedBytes = Convert.FromBase64String(encryptedBase64);
+                    byte[] additionalEntropy = Encoding.UTF8.GetBytes("Haihv.Vbdlis.Tools.Entropy");
+                    var plainBytes = ProtectedData.Unprotect(encryptedBytes, additionalEntropy, DataProtectionScope.CurrentUser);
+                    json = Encoding.UTF8.GetString(plainBytes);
                 }
+                else if (OperatingSystem.IsMacOS())
+                {
+                    // -w: Output password only
+                    json = RunSecurityCommand("find-generic-password", "-a", MacAccountName, "-s", MacServiceName, "-w");
+                }
+
+                if (string.IsNullOrEmpty(json)) return null;
+
+                var credentials = JsonSerializer.Deserialize<LoginSessionInfo>(json);
+                if (credentials == null) return null;
 
                 return (credentials.Server, credentials.Username, credentials.Password, credentials.HeadlessBrowser);
             }
             catch
             {
-                // If decryption fails or file is corrupted, return null
                 return null;
             }
         }
 
         public Task ClearCredentialsAsync()
         {
-            if (File.Exists(_credentialsFilePath))
+            if (OperatingSystem.IsWindows())
             {
-                File.Delete(_credentialsFilePath);
+                if (File.Exists(_credentialsFilePath))
+                {
+                    File.Delete(_credentialsFilePath);
+                }
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                try
+                {
+                    RunSecurityCommand("delete-generic-password", "-a", MacAccountName, "-s", MacServiceName);
+                }
+                catch
+                {
+                    // Ignore if not found
+                }
             }
 
             return Task.CompletedTask;
@@ -79,33 +119,53 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
 
         public Task<bool> HasSavedCredentialsAsync()
         {
-            return Task.FromResult(File.Exists(_credentialsFilePath));
+            if (OperatingSystem.IsWindows())
+            {
+                return Task.FromResult(File.Exists(_credentialsFilePath));
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                try
+                {
+                    // Check if exists by trying to find it. Exit code 0 means found.
+                    var output = RunSecurityCommand("find-generic-password", "-a", MacAccountName, "-s", MacServiceName);
+                    return Task.FromResult(!string.IsNullOrEmpty(output));
+                }
+                catch
+                {
+                    return Task.FromResult(false);
+                }
+            }
+
+            return Task.FromResult(false);
         }
 
-        private static byte[] ProtectData(string data)
+        private static string? RunSecurityCommand(string command, params string[] args)
         {
-            // Simple Base64 encoding (not encryption, but obfuscation)
-            // In a production app, you should use proper encryption
-            // For now, this provides basic protection against casual viewing
-            var dataBytes = Encoding.UTF8.GetBytes(data);
-            var base64 = Convert.ToBase64String(dataBytes);
-            return Encoding.UTF8.GetBytes(base64);
-        }
+            var psi = new ProcessStartInfo("security")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
-        private static string UnprotectData(byte[] encryptedData)
-        {
-            // Decode from Base64
-            var base64 = Encoding.UTF8.GetString(encryptedData);
-            var dataBytes = Convert.FromBase64String(base64);
-            return Encoding.UTF8.GetString(dataBytes);
-        }
+            psi.ArgumentList.Add(command);
+            foreach (var arg in args) psi.ArgumentList.Add(arg);
 
-        private class SavedCredentials
-        {
-            public string Server { get; set; } = string.Empty;
-            public string Username { get; set; } = string.Empty;
-            public string Password { get; set; } = string.Empty;
-            public bool HeadlessBrowser { get; set; } = false;
+            using var process = Process.Start(psi);
+            if (process == null) return null;
+
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
+            {
+                // Throwing exception for non-zero exit code to handle "not found" cases in caller
+                throw new Exception($"Security command failed with exit code {process.ExitCode}");
+            }
+
+            return output.TrimEnd('\n', '\r');
         }
     }
 }

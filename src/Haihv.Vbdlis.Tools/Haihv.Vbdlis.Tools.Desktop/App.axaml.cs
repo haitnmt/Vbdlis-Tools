@@ -43,6 +43,9 @@ namespace Haihv.Vbdlis.Tools.Desktop
                 desktop.MainWindow = new MainWindow
                 {
                     DataContext = mainViewModel,
+                    MinWidth = 1100,
+                    MinHeight = 880,
+                    WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterScreen
                 };
 
                 // Handle application exit to cleanup resources
