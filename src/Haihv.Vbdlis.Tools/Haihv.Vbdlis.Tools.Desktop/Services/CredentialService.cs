@@ -30,9 +30,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             _credentialsFilePath = Path.Combine(appDataPath, "credentials.dat");
         }
 
-        public async Task SaveCredentialsAsync(string server, string username, string password, bool headlessBrowser)
+        public async Task SaveCredentialsAsync(LoginSessionInfo credentials)
         {
-            var credentials = new LoginSessionInfo(server, username, password, headlessBrowser);
             var json = JsonSerializer.Serialize(credentials);
 
             if (OperatingSystem.IsWindows())
@@ -56,7 +55,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             }
         }
 
-        public async Task<(string server, string username, string password, bool headlessBrowser)?> LoadCredentialsAsync()
+        public async Task<LoginSessionInfo?> LoadCredentialsAsync()
         {
             try
             {
@@ -82,10 +81,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
 
                 if (string.IsNullOrEmpty(json)) return null;
 
-                var credentials = JsonSerializer.Deserialize<LoginSessionInfo>(json);
-                if (credentials == null) return null;
-
-                return (credentials.Server, credentials.Username, credentials.Password, credentials.HeadlessBrowser);
+                return JsonSerializer.Deserialize<LoginSessionInfo>(json);
             }
             catch
             {
@@ -115,29 +111,6 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             }
 
             return Task.CompletedTask;
-        }
-
-        public Task<bool> HasSavedCredentialsAsync()
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                return Task.FromResult(File.Exists(_credentialsFilePath));
-            }
-            else if (OperatingSystem.IsMacOS())
-            {
-                try
-                {
-                    // Check if exists by trying to find it. Exit code 0 means found.
-                    var output = RunSecurityCommand("find-generic-password", "-a", MacAccountName, "-s", MacServiceName);
-                    return Task.FromResult(!string.IsNullOrEmpty(output));
-                }
-                catch
-                {
-                    return Task.FromResult(false);
-                }
-            }
-
-            return Task.FromResult(false);
         }
 
         private static string? RunSecurityCommand(string command, params string[] args)
