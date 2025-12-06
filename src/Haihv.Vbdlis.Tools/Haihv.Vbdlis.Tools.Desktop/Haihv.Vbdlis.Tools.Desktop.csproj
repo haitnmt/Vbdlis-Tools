@@ -32,8 +32,4 @@
       <DependentUpon>SidebarControl.axaml</DependentUpon>
     </Compile>
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Haihv.Helpers.Strings\Haihv.Helpers.Strings.csproj" />
-  </ItemGroup>
 </Project>
