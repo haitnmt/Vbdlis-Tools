@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using Haihv.Vbdlis.Tools.Desktop.Extensions;
 using Haihv.Vbdlis.Tools.Desktop.Models;
 using Haihv.Vbdlis.Tools.Desktop.Services;
 using Microsoft.Playwright;
@@ -11,20 +12,14 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels;
 /// <summary>
 /// ViewModel cho tìm kiếm nâng cao Giấy chứng nhận trên VBDLIS sử dụng Playwright
 /// </summary>
-public class CungCapThongTinGiayChungNhanViewModel
+public class CungCapThongTinGiayChungNhanViewModel(
+    IPlaywrightService playwrightService,
+    LoginSessionInfo loginSessionInfo)
 {
     private readonly ILogger _logger = Log.ForContext<CungCapThongTinGiayChungNhanViewModel>();
-    private readonly IPlaywrightService _playwrightService;
-    private readonly LoginSessionInfo _loginSessionInfo;
+    private readonly IPlaywrightService _playwrightService = playwrightService;
+    private readonly LoginSessionInfo _loginSessionInfo = loginSessionInfo;
     private IPage? _page;
-
-    public CungCapThongTinGiayChungNhanViewModel(
-        IPlaywrightService playwrightService,
-        LoginSessionInfo loginSessionInfo)
-    {
-        _playwrightService = playwrightService;
-        _loginSessionInfo = loginSessionInfo;
-    }
 
     /// <summary>
     /// Gọi API tìm kiếm nâng cao Giấy chứng nhận theo số phát hành hoặc số giấy tờ
