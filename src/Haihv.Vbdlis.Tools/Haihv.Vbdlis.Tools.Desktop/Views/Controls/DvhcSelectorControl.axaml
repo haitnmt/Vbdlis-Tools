@@ -1,0 +1,221 @@
+<UserControl
+  x:Class="Haihv.Vbdlis.Tools.Desktop.Views.Controls.DvhcSelectorControl"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:Haihv.Vbdlis.Tools.Desktop.ViewModels"
+  xmlns:entities="using:Haihv.Vbdlis.Tools.Desktop.Entities"
+  d:DesignHeight="200"
+  d:DesignWidth="800"
+  x:DataType="vm:DvhcSelectorViewModel"
+  mc:Ignorable="d">
+
+  <Design.DataContext>
+    <vm:DvhcSelectorViewModel />
+  </Design.DataContext>
+
+  <UserControl.Resources>
+    <SolidColorBrush x:Key="RefreshButtonBackgroundBrush" Color="#0F6CBD" />
+    <SolidColorBrush x:Key="RefreshButtonForegroundBrush" Color="#FFFFFF" />
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <Style Selector="Button.refresh">
+      <Setter Property="Background" Value="{StaticResource RefreshButtonBackgroundBrush}" />
+      <Setter Property="Foreground" Value="{StaticResource RefreshButtonForegroundBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource RefreshButtonBackgroundBrush}" />
+    </Style>
+
+    <Style Selector="ComboBox">
+      <Setter Property="MinWidth" Value="200" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <!--  Toolbar: Nút làm mới  -->
+    <Border
+      DockPanel.Dock="Top"
+      Padding="8"
+      Background="{DynamicResource SystemRegionBrush}"
+      BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+      BorderThickness="0,0,0,1"
+      Margin="0,0,0,8">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <!--  Nút làm mới  -->
+        <Button
+          Grid.Column="0"
+          Classes="refresh"
+          Command="{Binding RefreshDvhcDataCommand}"
+          IsEnabled="{Binding !IsLoading}"
+          ToolTip.Tip="Làm mới dữ liệu DVHC từ web">
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="🔄" />
+            <TextBlock Text="Làm mới" />
+          </StackPanel>
+        </Button>
+
+        <!--  Status Message  -->
+        <TextBlock
+          Grid.Column="1"
+          Margin="16,0,0,0"
+          VerticalAlignment="Center"
+          FontStyle="Italic"
+          IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+          Text="{Binding StatusMessage}" />
+
+        <!--  Loading Indicator  -->
+        <StackPanel
+          Grid.Column="2"
+          Orientation="Horizontal"
+          Spacing="8"
+          IsVisible="{Binding IsLoading}">
+          <ProgressBar
+            Width="100"
+            Height="4"
+            VerticalAlignment="Center"
+            IsIndeterminate="True" />
+          <TextBlock VerticalAlignment="Center" Text="Đang tải..." />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!--  DVHC Selectors - Layout động theo IsHorizontalLayout  -->
+    <Panel>
+      <!--  Layout ngang: 3 ComboBox trên 1 hàng  -->
+      <StackPanel
+        Orientation="Horizontal"
+        Spacing="8"
+        IsVisible="{Binding IsHorizontalLayout}">
+
+        <!--  Tỉnh/Thành phố (Label hiển thị tên tỉnh hiện tại)  -->
+        <StackPanel Spacing="4">
+          <TextBlock
+            FontWeight="SemiBold"
+            Text="Tỉnh/Thành phố:" />
+          <Border
+            Padding="8"
+            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+            BorderThickness="1"
+            CornerRadius="4"
+            MinWidth="200">
+            <TextBlock
+              VerticalAlignment="Center"
+              Text="Bắc Ninh"
+              FontWeight="Medium" />
+          </Border>
+        </StackPanel>
+
+        <!--  Quận/Huyện  -->
+        <StackPanel Spacing="4">
+          <TextBlock
+            FontWeight="SemiBold"
+            Text="Quận/Huyện:" />
+          <ComboBox
+            ItemsSource="{Binding HuyenList}"
+            SelectedItem="{Binding SelectedHuyen}"
+            PlaceholderText="-- Chọn Quận/Huyện --"
+            IsEnabled="{Binding !IsLoading}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="entities:DvhcCapHuyen">
+                <TextBlock Text="{Binding Name}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+
+        <!--  Phường/Xã  -->
+        <StackPanel Spacing="4">
+          <TextBlock
+            FontWeight="SemiBold"
+            Text="Phường/Xã:" />
+          <ComboBox
+            ItemsSource="{Binding XaList}"
+            SelectedItem="{Binding SelectedXa}"
+            PlaceholderText="-- Chọn Phường/Xã --"
+            IsEnabled="{Binding !IsLoading}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="entities:DvhcCapXa">
+                <TextBlock Text="{Binding Name}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+      </StackPanel>
+
+      <!--  Layout dọc: Mỗi ComboBox 1 hàng  -->
+      <StackPanel
+        Orientation="Vertical"
+        Spacing="12"
+        IsVisible="{Binding !IsHorizontalLayout}">
+
+        <!--  Tỉnh/Thành phố  -->
+        <Grid ColumnDefinitions="150,*">
+          <TextBlock
+            Grid.Column="0"
+            VerticalAlignment="Center"
+            FontWeight="SemiBold"
+            Text="Tỉnh/Thành phố:" />
+          <Border
+            Grid.Column="1"
+            Padding="8"
+            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <TextBlock
+              VerticalAlignment="Center"
+              Text="Bắc Ninh"
+              FontWeight="Medium" />
+          </Border>
+        </Grid>
+
+        <!--  Quận/Huyện  -->
+        <Grid ColumnDefinitions="150,*">
+          <TextBlock
+            Grid.Column="0"
+            VerticalAlignment="Center"
+            FontWeight="SemiBold"
+            Text="Quận/Huyện:" />
+          <ComboBox
+            Grid.Column="1"
+            ItemsSource="{Binding HuyenList}"
+            SelectedItem="{Binding SelectedHuyen}"
+            PlaceholderText="-- Chọn Quận/Huyện --"
+            IsEnabled="{Binding !IsLoading}"
+            HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="entities:DvhcCapHuyen">
+                <TextBlock Text="{Binding Name}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </Grid>
+
+        <!--  Phường/Xã  -->
+        <Grid ColumnDefinitions="150,*">
+          <TextBlock
+            Grid.Column="0"
+            VerticalAlignment="Center"
+            FontWeight="SemiBold"
+            Text="Phường/Xã:" />
+          <ComboBox
+            Grid.Column="1"
+            ItemsSource="{Binding XaList}"
+            SelectedItem="{Binding SelectedXa}"
+            PlaceholderText="-- Chọn Phường/Xã --"
+            IsEnabled="{Binding !IsLoading}"
+            HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="entities:DvhcCapXa">
+                <TextBlock Text="{Binding Name}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </Grid>
+      </StackPanel>
+    </Panel>
+  </DockPanel>
+</UserControl>
