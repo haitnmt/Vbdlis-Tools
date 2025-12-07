@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Haihv.Vbdlis.Tools.Desktop.Extensions;
 using Haihv.Vbdlis.Tools.Desktop.Models;
@@ -160,6 +162,214 @@ public class CungCapThongTinGiayChungNhanViewModel(
         {
             _logger.Error(ex, "Lỗi gọi AdvancedSearchGiayChungNhan");
             Debug.WriteLine($"AdvancedSearchGCN EvaluateAsync Error: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Gọi API lấy Giấy chứng nhận biến động
+    /// </summary>
+    /// <param name="giayChungNhanId">ID của Giấy chứng nhận cần lấy thông tin biến động</param>
+    /// <returns>Thông tin Giấy chứng nhận biến động</returns>
+    public async Task<GetGiayChungNhanBienDongResponse?> GetGiayChungNhanBienDong(long giayChungNhanId)
+    {
+        if (giayChungNhanId <= 0)
+        {
+            throw new ArgumentException("Giấy chứng nhận ID phải lớn hơn 0.", nameof(giayChungNhanId));
+        }
+
+        await EnsureCungCapThongTinPageAsync();
+        var json = await PostGetGiayChungNhanBienDongAsync(giayChungNhanId);
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            var response = GetGiayChungNhanBienDongResponse.FromJson(json);
+            if (response == null)
+            {
+                _logger.Warning("GetGiayChungNhanBienDong trả về null.");
+            }
+            return response;
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            _logger.Error(ex, "Lỗi parse kết quả GetGiayChungNhanBienDong.");
+            Debug.WriteLine($"GetGiayChungNhanBienDong Parse Error: {ex.Message}");
+            Debug.WriteLine(json);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Gọi AJAX POST request cho GetGiayChungNhanBienDong sử dụng Playwright
+    /// </summary>
+    private async Task<string> PostGetGiayChungNhanBienDongAsync(long giayChungNhanId)
+    {
+        if (_page == null)
+        {
+            throw new InvalidOperationException("Page not initialized. Call EnsureCungCapThongTinPageAsync first.");
+        }
+
+        const string script = """
+            async ([url, giayChungNhanId]) => {
+                if (typeof $ === 'undefined' || typeof $.ajax === 'undefined') {
+                    return JSON.stringify({ error: 'jQuery not available on page' });
+                }
+
+                return new Promise((resolve) => {
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        data: { giayChungNhanId: giayChungNhanId },
+                        contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                        timeout: 120000,
+                        success: function(data) {
+                            resolve(typeof data === 'object' ? JSON.stringify(data) : data);
+                        },
+                        error: function(xhr, status, error) {
+                            resolve(JSON.stringify({
+                                error: error,
+                                status: xhr.status,
+                                statusText: status,
+                                responseText: xhr.responseText
+                            }));
+                        }
+                    });
+                });
+            }
+            """;
+
+        try
+        {
+            var response = await _page.EvaluateAsync<string>(
+                script,
+                new object[] { _loginSessionInfo.GetGiayChungNhanBienDongUrl, giayChungNhanId });
+
+            Debug.WriteLine($"GetGiayChungNhanBienDong: Response length {response?.Length ?? 0}");
+            return response ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Lỗi gọi GetGiayChungNhanBienDong");
+            Debug.WriteLine($"GetGiayChungNhanBienDong EvaluateAsync Error: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Gọi API lấy thông tin tập tin hồ sơ quét
+    /// </summary>
+    /// <param name="lstNodeId">Danh sách Node ID của các tập tin</param>
+    /// <param name="hoSoQuetId">ID của hồ sơ quét</param>
+    /// <param name="checkPermission">Kiểm tra quyền truy cập (mặc định: true)</param>
+    /// <returns>Danh sách thông tin tập tin hồ sơ quét</returns>
+    public async Task<GetThongTinTapTinHoSoQuetsResponse?> GetThongTinTapTinHoSoQuets(
+        List<string> lstNodeId,
+        long hoSoQuetId,
+        bool checkPermission = true)
+    {
+        if (lstNodeId == null || lstNodeId.Count == 0)
+        {
+            throw new ArgumentException("Danh sách Node ID không được rỗng.", nameof(lstNodeId));
+        }
+
+        if (hoSoQuetId <= 0)
+        {
+            throw new ArgumentException("Hồ sơ quét ID phải lớn hơn 0.", nameof(hoSoQuetId));
+        }
+
+        await EnsureCungCapThongTinPageAsync();
+        var json = await PostGetThongTinTapTinHoSoQuetsAsync(lstNodeId, hoSoQuetId, checkPermission);
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            var response = GetThongTinTapTinHoSoQuetsResponse.FromJson(json);
+            if (response == null)
+            {
+                _logger.Warning("GetThongTinTapTinHoSoQuets trả về null.");
+            }
+            return response;
+        }
+        catch (JsonException ex)
+        {
+            _logger.Error(ex, "Lỗi parse kết quả GetThongTinTapTinHoSoQuets.");
+            Debug.WriteLine($"GetThongTinTapTinHoSoQuets Parse Error: {ex.Message}");
+            Debug.WriteLine(json);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Gọi AJAX POST request cho GetThongTinTapTinHoSoQuets sử dụng Playwright
+    /// </summary>
+    private async Task<string> PostGetThongTinTapTinHoSoQuetsAsync(
+        List<string> lstNodeId,
+        long hoSoQuetId,
+        bool checkPermission)
+    {
+        if (_page == null)
+        {
+            throw new InvalidOperationException("Page not initialized. Call EnsureCungCapThongTinPageAsync first.");
+        }
+
+        const string script = """
+            async ([url, payload]) => {
+                if (typeof $ === 'undefined' || typeof $.ajax === 'undefined') {
+                    return JSON.stringify({ error: 'jQuery not available on page' });
+                }
+
+                return new Promise((resolve) => {
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        data: JSON.stringify(payload),
+                        contentType: 'application/json; charset=UTF-8',
+                        timeout: 120000,
+                        success: function(data) {
+                            resolve(typeof data === 'object' ? JSON.stringify(data) : data);
+                        },
+                        error: function(xhr, status, error) {
+                            resolve(JSON.stringify({
+                                error: error,
+                                status: xhr.status,
+                                statusText: status,
+                                responseText: xhr.responseText
+                            }));
+                        }
+                    });
+                });
+            }
+            """;
+
+        try
+        {
+            var payload = new
+            {
+                lstNodeId = lstNodeId,
+                checkPermission = checkPermission,
+                hoSoQuetId = hoSoQuetId
+            };
+
+            var response = await _page.EvaluateAsync<string>(
+                script,
+                new object[] { _loginSessionInfo.GetThongTinTapTinHoSoQuetsUrl, payload });
+
+            Debug.WriteLine($"GetThongTinTapTinHoSoQuets: Response length {response?.Length ?? 0}");
+            return response ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Lỗi gọi GetThongTinTapTinHoSoQuets");
+            Debug.WriteLine($"GetThongTinTapTinHoSoQuets EvaluateAsync Error: {ex.Message}");
             return string.Empty;
         }
     }
