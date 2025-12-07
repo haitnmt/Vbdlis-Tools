@@ -120,86 +120,143 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         /// </summary>
         public async Task<bool> InstallBrowsersAsync(Action<string>? progress = null)
         {
+            TextWriter? originalOut = null;
+            TextWriter? originalError = null;
+            System.Threading.Timer? timer = null;
+
             try
             {
                 var os = GetOperatingSystem();
                 _logger.Information("Starting Playwright browsers installation on {OS}", os);
                 progress?.Invoke($"Đang khởi tạo cài đặt Playwright...");
 
-                // Redirect console output to capture progress
-                var originalOut = Console.Out;
-                var originalError = Console.Error;
                 var outputBuilder = new StringBuilder();
 
                 await Task.Run(() =>
                 {
                     try
                     {
-                        using var stringWriter = new StringWriter(outputBuilder);
-                        Console.SetOut(stringWriter);
-                        Console.SetError(stringWriter);
+                        // Save original console streams
+                        originalOut = Console.Out;
+                        originalError = Console.Error;
 
                         // Track last reported percentage to avoid duplicate updates
                         int lastPercent = -1;
                         string lastMessage = "";
 
+                        // Redirect console output to capture progress
+                        var stringWriter = new StringWriter(outputBuilder);
+                        Console.SetOut(stringWriter);
+                        Console.SetError(stringWriter);
+
                         // Periodically check output buffer for progress updates
-                        var timer = new System.Threading.Timer(_ =>
+                        timer = new System.Threading.Timer(_ =>
                         {
-                            var output = outputBuilder.ToString();
-                            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-                            if (lines.Length > 0)
+                            try
                             {
-                                var lastLine = lines[^1];
+                                var output = outputBuilder.ToString();
+                                var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
-                                // Parse and report progress
-                                var progressMessage = ParseInstallProgress(lastLine);
-                                if (!string.IsNullOrEmpty(progressMessage) && progressMessage != lastMessage)
+                                if (lines.Length > 0)
                                 {
-                                    lastMessage = progressMessage;
-                                    _logger.Information("[Playwright] {Message}", progressMessage);
-                                    progress?.Invoke(progressMessage);
+                                    var lastLine = lines[^1];
 
-                                    // Extract percentage if available
-                                    var match = Regex.Match(progressMessage, @"(\d+)%");
-                                    if (match.Success && int.TryParse(match.Groups[1].Value, out int percent))
+                                    // Parse and report progress
+                                    var progressMessage = ParseInstallProgress(lastLine);
+                                    if (!string.IsNullOrEmpty(progressMessage) && progressMessage != lastMessage)
                                     {
-                                        if (percent != lastPercent)
+                                        lastMessage = progressMessage;
+                                        originalOut?.WriteLine($"[Playwright] {progressMessage}");
+                                        _logger.Information("[Playwright] {Message}", progressMessage);
+                                        progress?.Invoke(progressMessage);
+
+                                        // Extract percentage if available
+                                        var match = Regex.Match(progressMessage, @"(\d+)%");
+                                        if (match.Success && int.TryParse(match.Groups[1].Value, out int percent))
                                         {
-                                            lastPercent = percent;
+                                            if (percent != lastPercent)
+                                            {
+                                                lastPercent = percent;
+                                            }
                                         }
                                     }
                                 }
+                            }
+                            catch (Exception timerEx)
+                            {
+                                _logger.Warning(timerEx, "Error in progress timer callback");
                             }
                         }, null, 0, 500); // Check every 500ms
 
                         progress?.Invoke("Đang tải xuống Chromium browser...");
                         _logger.Information("Executing: playwright install chromium");
 
-                        // Call Playwright CLI to install browsers
-                        var exitCode = Microsoft.Playwright.Program.Main(new[] { "install", "chromium" });
+                        // Log environment information
+                        var currentDir = Directory.GetCurrentDirectory();
+                        var appDir = AppDomain.CurrentDomain.BaseDirectory;
+                        _logger.Information("Current directory: {Dir}", currentDir);
+                        _logger.Information("App base directory: {AppDir}", appDir);
+                        _logger.Information("User profile: {Profile}", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+                        _logger.Information("Playwright cache path: {Path}", GetPlaywrightBrowsersPath());
 
-                        timer.Dispose();
-
-                        // Restore original console
-                        Console.SetOut(originalOut);
-                        Console.SetError(originalError);
-
-                        if (exitCode != 0)
+                        // Change to app directory to ensure Playwright can find its assets
+                        var originalDir = currentDir;
+                        try
                         {
-                            _logger.Error("Playwright installation failed with exit code: {ExitCode}", exitCode);
-                            throw new InvalidOperationException($"Playwright installation failed with exit code: {exitCode}");
+                            Directory.SetCurrentDirectory(appDir);
+                            _logger.Information("Changed working directory to: {AppDir}", appDir);
+
+                            // Check if .playwright directory exists in app directory
+                            var playwrightDriverPath = Path.Combine(appDir, ".playwright");
+                            if (Directory.Exists(playwrightDriverPath))
+                            {
+                                _logger.Information("Found .playwright driver at: {Path}", playwrightDriverPath);
+                            }
+                            else
+                            {
+                                _logger.Warning(".playwright driver not found at: {Path}", playwrightDriverPath);
+                            }
+
+                            // Call Playwright CLI to install browsers
+                            var exitCode = Microsoft.Playwright.Program.Main(new[] { "install", "chromium" });
+
+                            _logger.Information("Playwright install command completed with exit code: {ExitCode}", exitCode);
+
+                            if (exitCode != 0)
+                            {
+                                _logger.Error("Playwright installation failed with exit code: {ExitCode}", exitCode);
+                                _logger.Error("Installation output: {Output}", outputBuilder.ToString());
+                                throw new InvalidOperationException($"Playwright installation failed with exit code: {exitCode}");
+                            }
+                        }
+                        finally
+                        {
+                            // Restore original directory
+                            Directory.SetCurrentDirectory(originalDir);
                         }
 
                         _logger.Information("Playwright installation completed successfully");
                     }
                     catch (Exception ex)
                     {
-                        Console.SetOut(originalOut);
-                        Console.SetError(originalError);
-                        _logger.Error(ex, "Error during Playwright installation");
+                        _logger.Error(ex, "Error during Playwright installation. Output so far: {Output}", outputBuilder.ToString());
                         throw;
+                    }
+                    finally
+                    {
+                        // Cleanup timer
+                        timer?.Dispose();
+                        timer = null;
+
+                        // Restore original console
+                        if (originalOut != null)
+                        {
+                            Console.SetOut(originalOut);
+                        }
+                        if (originalError != null)
+                        {
+                            Console.SetError(originalError);
+                        }
                     }
                 });
 
@@ -211,6 +268,16 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             {
                 _logger.Error(ex, "Failed to install Playwright browsers");
                 progress?.Invoke($"Lỗi: {ex.Message}");
+
+                // Ensure console is restored
+                try
+                {
+                    if (originalOut != null) Console.SetOut(originalOut);
+                    if (originalError != null) Console.SetError(originalError);
+                    timer?.Dispose();
+                }
+                catch { }
+
                 return false;
             }
         }

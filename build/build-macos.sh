@@ -48,17 +48,23 @@ build_for_arch() {
         -p:PublishTrimmed=false \
         -p:Version="$VERSION"
 
-    # Remove Playwright browsers
+    # Remove Playwright browsers (but keep driver files)
     echo "Removing Playwright browsers from output..."
-    rm -rf "$PUBLISH_PATH/.playwright" 2>/dev/null || true
+    # Keep .playwright/node and .playwright/package (needed for installation)
+    # Remove only browser binaries if they exist
+    find "$PUBLISH_PATH/.playwright" -type d -name "chromium-*" -exec rm -rf {} + 2>/dev/null || true
+    find "$PUBLISH_PATH/.playwright" -type d -name "firefox-*" -exec rm -rf {} + 2>/dev/null || true
+    find "$PUBLISH_PATH/.playwright" -type d -name "webkit-*" -exec rm -rf {} + 2>/dev/null || true
+    find "$PUBLISH_PATH/.playwright" -type d -name "ffmpeg-*" -exec rm -rf {} + 2>/dev/null || true
 
     # Create .app bundle structure
     echo "Creating .app bundle..."
     mkdir -p "$APP_PATH/Contents/MacOS"
     mkdir -p "$APP_PATH/Contents/Resources"
 
-    # Copy binaries
-    cp -r "$PUBLISH_PATH/"* "$APP_PATH/Contents/MacOS/"
+    # Copy binaries (including hidden files like .playwright)
+    # Use rsync to copy everything including dotfiles
+    rsync -av "$PUBLISH_PATH/" "$APP_PATH/Contents/MacOS/"
 
     # Make executable
     chmod +x "$APP_PATH/Contents/MacOS/Haihv.Vbdlis.Tools.Desktop"

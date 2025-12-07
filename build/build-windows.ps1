@@ -49,12 +49,16 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# Remove Playwright browsers if they exist (they will be downloaded on first run)
+# Remove Playwright browsers (but keep driver files needed for installation)
 Write-Host "`nRemoving Playwright browsers from output (will be downloaded on first run)..." -ForegroundColor Yellow
-$PlaywrightBrowsersPath = Join-Path $PublishPath ".playwright"
-if (Test-Path $PlaywrightBrowsersPath) {
-    Remove-Item -Path $PlaywrightBrowsersPath -Recurse -Force
-    Write-Host "Removed Playwright browsers folder" -ForegroundColor Green
+$PlaywrightPath = Join-Path $PublishPath ".playwright"
+if (Test-Path $PlaywrightPath) {
+    # Remove only browser binaries, keep .playwright/node and .playwright/package
+    Get-ChildItem -Path $PlaywrightPath -Directory -Filter "chromium-*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
+    Get-ChildItem -Path $PlaywrightPath -Directory -Filter "firefox-*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
+    Get-ChildItem -Path $PlaywrightPath -Directory -Filter "webkit-*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
+    Get-ChildItem -Path $PlaywrightPath -Directory -Filter "ffmpeg-*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
+    Write-Host "Removed Playwright browser binaries (kept driver files)" -ForegroundColor Green
 }
 
 # Copy to dist folder
