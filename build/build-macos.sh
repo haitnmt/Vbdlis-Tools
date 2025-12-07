@@ -105,7 +105,7 @@ build_for_arch() {
 </plist>
 EOF
 
-    # Create DMG
+    # Create DMG with Applications symlink
     echo "Creating DMG..."
     local DMG_NAME="VbdlisTools-macOS-$ARCH_NAME-v$VERSION.dmg"
     local DMG_PATH="$DIST_PATH/$DMG_NAME"
@@ -115,7 +115,12 @@ EOF
     # Create temporary folder for DMG
     local TEMP_DMG_DIR="$DIST_PATH/temp_dmg_$ARCH_NAME"
     mkdir -p "$TEMP_DMG_DIR"
+
+    # Copy app bundle
     cp -r "$APP_PATH" "$TEMP_DMG_DIR/$APP_NAME"
+
+    # Create symbolic link to Applications folder
+    ln -s /Applications "$TEMP_DMG_DIR/Applications"
 
     # Create DMG using hdiutil
     hdiutil create -volname "VBDLIS Tools" \
