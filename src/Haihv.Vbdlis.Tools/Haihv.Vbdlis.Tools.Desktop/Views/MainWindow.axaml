@@ -43,10 +43,11 @@
 
             <!--  Main Content Area  -->
             <Grid>
-                <!--  This is where your main content will go  -->
+                <!--  Home View  -->
                 <StackPanel
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
+                    IsVisible="{Binding CurrentView, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=Home}"
                     Spacing="10">
                     <TextBlock
                         HorizontalAlignment="Center"
@@ -69,6 +70,9 @@
                         Command="{Binding LogoutCommand}"
                         Content="Đăng xuất" />
                 </StackPanel>
+
+                <!--  Cung Cấp Thông Tin View  -->
+                <sidebarControls:CungCapThongTinControl IsVisible="{Binding CurrentView, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=CungCapThongTin}" />
             </Grid>
         </SplitView>
     </Panel>

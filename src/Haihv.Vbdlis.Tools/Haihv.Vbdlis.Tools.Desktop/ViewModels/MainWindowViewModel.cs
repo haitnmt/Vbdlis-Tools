@@ -26,6 +26,9 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
         [ObservableProperty]
         private LoginViewModel _loginViewModel;
 
+        [ObservableProperty]
+        private string _currentView = "Home";
+
         public MainWindowViewModel(IPlaywrightService playwrightService, ICredentialService credentialService)
         {
             _playwrightService = playwrightService;
@@ -90,6 +93,18 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
             {
                 Environment.Exit(0);
             }
+        }
+
+        [RelayCommand]
+        private void ShowCungCapThongTin()
+        {
+            CurrentView = "CungCapThongTin";
+        }
+
+        [RelayCommand]
+        private void ShowHome()
+        {
+            CurrentView = "Home";
         }
 
         [RelayCommand]

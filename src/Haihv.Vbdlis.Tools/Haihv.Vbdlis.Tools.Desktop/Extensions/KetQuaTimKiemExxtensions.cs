@@ -8,99 +8,6 @@ namespace Haihv.Vbdlis.Tools.Desktop.Extensions;
 
 public static class KetQuaTimKiemExxtensions
 {
-    extension(ChuSuDungModel chuSuDungModel)
-    {
-        public string DisplayInfo
-        {
-            get
-            {
-                var namSinhStr = string.IsNullOrWhiteSpace(chuSuDungModel.NamSinh)
-                    ? ""
-                    : $"Năm sinh: {chuSuDungModel.NamSinh}\n";
-                var soGiayToStr = string.IsNullOrWhiteSpace(chuSuDungModel.SoGiayTo)
-                    ? ""
-                    : $"Số giấy tờ: {chuSuDungModel.SoGiayTo}\n";
-                var diaChiStr = string.IsNullOrWhiteSpace(chuSuDungModel.DiaChi)
-                    ? ""
-                    : $"Địa chỉ: {chuSuDungModel.DiaChi}\n";
-                return $"Họ tên: {chuSuDungModel.HoTen}\n" +
-                       namSinhStr +
-                       soGiayToStr +
-                       diaChiStr;
-            }
-        }
-    }
-    extension(GiayChungNhanModel giayChungNhanModel)
-    {
-        public string DisplayInfo
-        {
-            get
-            {
-                var ngayCapStr = giayChungNhanModel.NgayCap >= new DateTime(1993, 1, 1)
-                    ? $"Ngày cấp: {giayChungNhanModel.NgayCap:dd/MM/yyyy}\n"
-                    : "";
-                var ngayVaoSoStr = giayChungNhanModel.NgayVaoSo >= new DateTime(1993, 1, 1)
-                    ? $"Ngày vào sổ: {giayChungNhanModel.NgayVaoSo:dd/MM/yyyy}\n"
-                    : "";
-                var soVaoSoStr = string.IsNullOrWhiteSpace(giayChungNhanModel.SoVaoSo)
-                ? ""
-                : $"Số vào sổ: {giayChungNhanModel.SoVaoSo}\n";
-                return $"Số phát hành: {giayChungNhanModel.SoPhatHanh}\n" +
-                       ngayCapStr +
-                       soVaoSoStr +
-                       ngayVaoSoStr;
-            }
-        }
-    }
-    extension(ThuaDatModel thuaDatModel)
-    {
-        public string DisplayInfo
-        {
-            get
-            {
-                var dienTichStr = thuaDatModel.DienTich <= 0
-                    ? ""
-                    : $"Diện tích: {thuaDatModel.DienTich} m²\n";
-                var mucDichSuDungStr = string.IsNullOrWhiteSpace(thuaDatModel.MucDichSuDung)
-                    ? ""
-                    : $"Mục đích sử dụng: {thuaDatModel.MucDichSuDung}\n";
-                var diaChiStr = string.IsNullOrWhiteSpace(thuaDatModel.DiaChi)
-                    ? ""
-                    : $"Địa chỉ: {thuaDatModel.DiaChi}\n";
-                return $"Số tờ bản đồ: {thuaDatModel.SoToBanDo}\n" +
-                       $"Số thửa đất: {thuaDatModel.SoThuaDat}\n" +
-                       dienTichStr +
-                       mucDichSuDungStr +
-                       diaChiStr;
-            }
-        }
-    }
-    extension(TaiSanModel taiSanModel)
-    {
-        public string DisplayInfo
-        {
-            get
-            {
-                var dienTichXayDungStr = taiSanModel.DienTichXayDung <= 0
-                    ? ""
-                    : $"Diện tích xây dựng: {taiSanModel.DienTichXayDung} m²\n";
-                var dienTichSuDungStr = taiSanModel.DienTichSuDung <= 0
-                    ? ""
-                    : $"Diện tích sử dụng: {taiSanModel.DienTichSuDung} m²\n";
-                var soTangStr = string.IsNullOrWhiteSpace(taiSanModel.SoTang)
-                    ? ""
-                    : $"Số tầng: {taiSanModel.SoTang}\n";
-                var diaChiStr = string.IsNullOrWhiteSpace(taiSanModel.DiaChi)
-                    ? ""
-                    : $"Địa chỉ: {taiSanModel.DiaChi}\n";
-                return $"Loại tài sản: {taiSanModel.LoaiTaiSan}\n" +
-                       dienTichXayDungStr +
-                       dienTichSuDungStr +
-                       soTangStr +
-                       diaChiStr;
-            }
-        }
-    }
     extension(AdvancedSearchGiayChungNhanResponse giayChungNhanResponse)
     {
         public List<KetQuaTimKiemModel> ToKetQuaTimKiemModels()
@@ -155,6 +62,5 @@ public static class KetQuaTimKiemExxtensions
 
             return results;
         }
-
     }
 }

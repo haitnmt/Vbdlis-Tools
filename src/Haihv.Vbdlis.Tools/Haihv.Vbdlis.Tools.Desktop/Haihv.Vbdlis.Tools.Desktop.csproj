@@ -47,6 +47,9 @@
     <Compile Update="Views\Controls\SideBarControl.axaml.cs">
       <DependentUpon>SidebarControl.axaml</DependentUpon>
     </Compile>
+    <Compile Update="Views\Controls\KetQuaTimKiemDataGridControl.axaml.cs">
+      <DependentUpon>KetQuaTimKiemDataGridControl.axaml</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>

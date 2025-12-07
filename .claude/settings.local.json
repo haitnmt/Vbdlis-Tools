@@ -11,7 +11,9 @@
       "Bash(sips:*)",
       "Bash(iconutil -c icns:*)",
       "Bash(open:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(tree:*)",
+      "Bash(dotnet clean:*)"
     ],
     "deny": [],
     "ask": []

@@ -107,70 +107,33 @@
       ItemsSource="{Binding KetQuaTimKiemList}"
       SelectedItem="{Binding SelectedItem}">
       <DataGrid.Columns>
-        <!--  Số thứ tự  -->
-        <DataGridTextColumn
-          Width="50"
-          Binding="{Binding}"
-          Header="STT">
-          <DataGridTextColumn.ElementStyle>
-            <Style TargetType="TextBlock">
-              <Setter Property="HorizontalAlignment" Value="Center" />
-              <Setter Property="Text" Value="{Binding $parent[DataGridRow].GetIndex(), StringFormat='{}{0}'}" />
-            </Style>
-          </DataGridTextColumn.ElementStyle>
-        </DataGridTextColumn>
-
-        <!--  Chủ sử dụng (sử dụng DisplayInfo từ extension)  -->
+        <!--  Chủ sử dụng  -->
         <DataGridTextColumn
           Width="*"
           MinWidth="250"
           Binding="{Binding ChuSuDung.DisplayInfo}"
-          Header="Chủ sử dụng">
-          <DataGridTextColumn.ElementStyle>
-            <Style TargetType="TextBlock">
-              <Setter Property="TextWrapping" Value="Wrap" />
-            </Style>
-          </DataGridTextColumn.ElementStyle>
-        </DataGridTextColumn>
+          Header="Chủ sử dụng" />
 
-        <!--  Giấy chứng nhận (sử dụng DisplayInfo từ extension)  -->
+        <!--  Giấy chứng nhận  -->
         <DataGridTextColumn
           Width="*"
           MinWidth="250"
           Binding="{Binding GiayChungNhanModel.DisplayInfo}"
-          Header="Giấy chứng nhận">
-          <DataGridTextColumn.ElementStyle>
-            <Style TargetType="TextBlock">
-              <Setter Property="TextWrapping" Value="Wrap" />
-            </Style>
-          </DataGridTextColumn.ElementStyle>
-        </DataGridTextColumn>
+          Header="Giấy chứng nhận" />
 
-        <!--  Thửa đất (sử dụng DisplayInfo từ extension)  -->
+        <!--  Thửa đất  -->
         <DataGridTextColumn
           Width="*"
           MinWidth="250"
           Binding="{Binding ThuaDatModel.DisplayInfo}"
-          Header="Thửa đất">
-          <DataGridTextColumn.ElementStyle>
-            <Style TargetType="TextBlock">
-              <Setter Property="TextWrapping" Value="Wrap" />
-            </Style>
-          </DataGridTextColumn.ElementStyle>
-        </DataGridTextColumn>
+          Header="Thửa đất" />
 
-        <!--  Tài sản (sử dụng DisplayInfo từ extension)  -->
+        <!--  Tài sản  -->
         <DataGridTextColumn
           Width="*"
           MinWidth="250"
           Binding="{Binding TaiSan.DisplayInfo}"
-          Header="Tài sản">
-          <DataGridTextColumn.ElementStyle>
-            <Style TargetType="TextBlock">
-              <Setter Property="TextWrapping" Value="Wrap" />
-            </Style>
-          </DataGridTextColumn.ElementStyle>
-        </DataGridTextColumn>
+          Header="Tài sản" />
       </DataGrid.Columns>
     </DataGrid>
   </DockPanel>
