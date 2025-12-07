@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using Haihv.Vbdlis.Tools.Desktop.ViewModels;
 using Haihv.Vbdlis.Tools.Desktop.Views;
 using Haihv.Vbdlis.Tools.Desktop.Services;
@@ -80,10 +81,13 @@ namespace Haihv.Vbdlis.Tools.Desktop
         /// <summary>
         /// Ensures Playwright browsers are installed on first run.
         /// This runs asynchronously in the background during app startup.
+        /// Shows a UI window with installation progress.
         /// Supported on Windows and MacOS only.
         /// </summary>
         private async Task EnsurePlaywrightBrowsersAsync()
         {
+            PlaywrightInstallationWindow? progressWindow = null;
+
             try
             {
                 if (_serviceProvider == null)
@@ -109,24 +113,62 @@ namespace Haihv.Vbdlis.Tools.Desktop
                     return;
                 }
 
-                // Ensure browsers are installed (will auto-install if needed)
+                // Check if browsers are already installed
+                if (installer.IsBrowsersInstalled())
+                {
+                    Log.Information("Playwright browsers already installed");
+                    return;
+                }
+
+                // Create and show progress window on UI thread
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    progressWindow = new PlaywrightInstallationWindow
+                    {
+                        DataContext = new PlaywrightInstallationViewModel
+                        {
+                            OperatingSystem = os
+                        }
+                    };
+                    progressWindow.Show();
+                });
+
+                Log.Information("Playwright browsers not found. Starting installation...");
+                progressWindow?.StartInstallation();
+
+                // Install browsers with progress updates
                 var success = await installer.EnsureBrowsersInstalledAsync(message =>
                 {
                     Log.Information("[Playwright] {Message}", message);
+                    progressWindow?.UpdateStatus(message);
                 });
 
                 if (success)
                 {
-                    Log.Information("Playwright browsers are ready to use");
+                    Log.Information("Playwright browsers installed successfully");
+                    progressWindow?.CompleteInstallation();
+
+                    // Auto-close window after 3 seconds
+                    if (progressWindow != null)
+                    {
+                        await progressWindow.AutoCloseAfterDelayAsync(3000);
+                    }
                 }
                 else
                 {
-                    Log.Error("Failed to ensure Playwright browsers are installed. The application may not function correctly.");
+                    Log.Error("Failed to install Playwright browsers");
+                    progressWindow?.SetError("Không thể cài đặt Playwright browsers. Vui lòng kiểm tra kết nối mạng và thử lại.");
+
+                    // Keep window open on error so user can see the message
+                    // User will need to close it manually
                 }
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Error during Playwright browsers installation check");
+                progressWindow?.SetError($"Lỗi: {ex.Message}");
+
+                // Keep window open on error
             }
         }
 
