@@ -23,6 +23,12 @@ public static class UrlExtensions
 
         public string AdvancedSearchGiayChungNhanUrl
             => $"{sessionInfo.BaseUrl}/dc/CungCapThongTinGiayChungNhanAjax/AdvancedSearchGiayChungNhan";
+        public string GetGiayChungNhanBienDongUrl
+            => $"{sessionInfo.BaseUrl}/dc/CungCapThongTinGiayChungNhanAjax/GetGiayChungNhanBienDong";
+        public string GetHoSoQuetByGiayChungNhanIdUrl
+            => $"{sessionInfo.BaseUrl}/dc/CungCapThongTinGiayChungNhanAjax/GetHoSoQuetByGiayChungNhanId";
+        public string GetThongTinTapTinHoSoQuetsUrl
+            => $"{sessionInfo.BaseUrl}/dc/HoSoQuetAjax/GetThongTinTapTinHoSoQuets";
     }
 
     public const string AuthenBaseUrl = "https://authen.mplis.gov.vn";

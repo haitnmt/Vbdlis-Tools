@@ -1,0 +1,138 @@
+<Window
+    x:Class="Haihv.Vbdlis.Tools.Desktop.Views.PlaywrightInstallationWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Haihv.Vbdlis.Tools.Desktop.ViewModels"
+    Title="Cài đặt Playwright"
+    Width="550"
+    Height="320"
+    CanResize="False"
+    WindowStartupLocation="CenterScreen"
+    Icon="/Assets/appicon.png"
+    d:DesignHeight="320"
+    d:DesignWidth="550"
+    x:DataType="vm:PlaywrightInstallationViewModel"
+    mc:Ignorable="d">
+
+    <Design.DataContext>
+        <vm:PlaywrightInstallationViewModel />
+    </Design.DataContext>
+
+    <Border
+        Padding="30"
+        Background="{DynamicResource SystemAltHighColor}"
+        CornerRadius="0">
+        <StackPanel Spacing="20">
+
+            <!--  Title  -->
+            <TextBlock
+                HorizontalAlignment="Center"
+                FontSize="20"
+                FontWeight="SemiBold"
+                Text="Cài đặt Playwright" />
+
+            <!--  Operating System Info  -->
+            <TextBlock
+                HorizontalAlignment="Center"
+                Foreground="Gray"
+                IsVisible="{Binding OperatingSystem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                Text="{Binding OperatingSystem, StringFormat='Hệ điều hành: {0}'}" />
+
+            <!--  Status Message  -->
+            <TextBlock
+                HorizontalAlignment="Center"
+                Text="{Binding StatusMessage}"
+                TextAlignment="Center"
+                TextWrapping="Wrap" />
+
+            <!--  Progress Bar  -->
+            <StackPanel Spacing="8">
+                <ProgressBar
+                    Height="8"
+                    IsIndeterminate="{Binding IsIndeterminate}"
+                    Maximum="100"
+                    Value="{Binding ProgressValue}" />
+
+                <!--  Progress Percentage (only visible when not indeterminate)  -->
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="12"
+                    Foreground="Gray"
+                    IsVisible="{Binding !IsIndeterminate}"
+                    Text="{Binding ProgressValue, StringFormat='{}{0}%'}" />
+            </StackPanel>
+
+            <!--  Error Message (only visible when there's an error)  -->
+            <StackPanel Spacing="10" IsVisible="{Binding HasError}">
+                <Border
+                    Padding="10"
+                    Background="#FFFFE0E0"
+                    BorderBrush="#FFFF6B6B"
+                    BorderThickness="1"
+                    CornerRadius="4">
+                    <StackPanel Spacing="5">
+                        <TextBlock
+                            FontWeight="SemiBold"
+                            Foreground="#FFD32F2F"
+                            Text="Lỗi:" />
+                        <TextBlock
+                            Foreground="#FFD32F2F"
+                            Text="{Binding ErrorMessage}"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            Margin="0,5,0,0"
+                            Foreground="#FF757575"
+                            FontSize="11"
+                            Text="Ứng dụng cần Playwright để hoạt động. Vui lòng thử lại hoặc cài đặt thủ công theo hướng dẫn trong file PLAYWRIGHT_SETUP.md"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!--  Action Buttons  -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                    <Button
+                        Content="🔄 Thử lại"
+                        Command="{Binding RetryCommand}"
+                        Padding="15,8"
+                        Background="#FF2196F3"
+                        Foreground="White"
+                        CornerRadius="4" />
+                    <Button
+                        Content="❌ Đóng ứng dụng"
+                        Command="{Binding ExitCommand}"
+                        Padding="15,8"
+                        Background="#FFF44336"
+                        Foreground="White"
+                        CornerRadius="4" />
+                </StackPanel>
+            </StackPanel>
+
+            <!--  Success Message (only visible when completed)  -->
+            <Border
+                Padding="10"
+                Background="#FFE8F5E9"
+                BorderBrush="#FF4CAF50"
+                BorderThickness="1"
+                CornerRadius="4"
+                IsVisible="{Binding IsCompleted}">
+                <StackPanel Spacing="5">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontWeight="SemiBold"
+                        Foreground="#FF2E7D32"
+                        Text="✓ Hoàn tất!" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="11"
+                        Foreground="Gray"
+                        Text="Cửa sổ này sẽ tự động đóng sau vài giây..."
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </Border>
+
+</Window>

@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:sidebarControls="using:Haihv.Vbdlis.Tools.Desktop.Views.Controls"
+    xmlns:views="using:Haihv.Vbdlis.Tools.Desktop.Views"
     xmlns:vm="using:Haihv.Vbdlis.Tools.Desktop.ViewModels"
     Title="Công cụ VBDLIS"
     Width="1200"
@@ -13,7 +14,7 @@
     d:DesignHeight="700"
     d:DesignWidth="1200"
     x:DataType="vm:MainWindowViewModel"
-    Icon="/Assets/avalonia-logo.ico"
+    Icon="/Assets/appicon.png"
     mc:Ignorable="d">
 
     <Design.DataContext>
@@ -43,10 +44,11 @@
 
             <!--  Main Content Area  -->
             <Grid>
-                <!--  This is where your main content will go  -->
+                <!--  Home View  -->
                 <StackPanel
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
+                    IsVisible="{Binding CurrentView, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=Home}"
                     Spacing="10">
                     <TextBlock
                         HorizontalAlignment="Center"
@@ -69,6 +71,12 @@
                         Command="{Binding LogoutCommand}"
                         Content="Đăng xuất" />
                 </StackPanel>
+
+                <!--  Cung Cấp Thông Tin View  -->
+                <views:CungCapThongTinView
+                    x:Name="CungCapThongTinView"
+                    DataContext="{Binding CungCapThongTinViewModel}"
+                    IsVisible="{Binding $parent[Grid].DataContext.CurrentView, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=CungCapThongTin}" />
             </Grid>
         </SplitView>
     </Panel>

@@ -4,7 +4,17 @@
       "Bash(dotnet build:*)",
       "Bash(cat:*)",
       "Bash(find:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(./build/build-macos.sh:*)",
+      "Bash(ls:*)",
+      "Bash(qlmanage -t:*)",
+      "Bash(sips:*)",
+      "Bash(iconutil -c icns:*)",
+      "Bash(open:*)",
+      "Bash(chmod:*)",
+      "Bash(tree:*)",
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet add package:*)"
     ],
     "deny": [],
     "ask": []

@@ -464,3 +464,97 @@ public class DangKyQuyenDto
     [JsonPropertyName("InId")] public string? InId { get; set; }
     [JsonPropertyName("OutId")] public string? OutId { get; set; }
 }
+
+/// <summary>
+/// Model phản hồi cho API GetGiayChungNhanBienDong
+/// </summary>
+public class GetGiayChungNhanBienDongResponse
+{
+    private static readonly JsonSerializerOptions options = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
+    [JsonPropertyName("success")] public bool Success { get; set; }
+    [JsonPropertyName("value")] public GiayChungNhanBienDongValue? Value { get; set; }
+
+    /// <summary>
+    /// Deserialize JSON string sang GetGiayChungNhanBienDongResponse
+    /// </summary>
+    public static GetGiayChungNhanBienDongResponse? FromJson(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+
+        return JsonSerializer.Deserialize<GetGiayChungNhanBienDongResponse>(json, options);
+    }
+}
+
+public class GiayChungNhanBienDongValue
+{
+    [JsonPropertyName("GiayChungNhan")] public GiayChungNhanDto? GiayChungNhan { get; set; }
+}
+
+/// <summary>
+/// Model phản hồi cho API GetThongTinTapTinHoSoQuets
+/// </summary>
+public class GetThongTinTapTinHoSoQuetsResponse
+{
+    private static readonly JsonSerializerOptions options = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
+    [JsonPropertyName("success")] public bool Success { get; set; }
+    [JsonPropertyName("value")] public List<TapTinHoSoQuetDto>? Value { get; set; }
+
+    /// <summary>
+    /// Deserialize JSON string sang GetThongTinTapTinHoSoQuetsResponse
+    /// </summary>
+    public static GetThongTinTapTinHoSoQuetsResponse? FromJson(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+
+        return JsonSerializer.Deserialize<GetThongTinTapTinHoSoQuetsResponse>(json, options);
+    }
+}
+
+/// <summary>
+/// DTO cho thông tin tập tin hồ sơ quét
+/// </summary>
+public class TapTinHoSoQuetDto
+{
+    [JsonPropertyName("Type")] public string? Type { get; set; }
+    [JsonPropertyName("NodeId")] public long NodeId { get; set; }
+    [JsonPropertyName("ParentId")] public long? ParentId { get; set; }
+    [JsonPropertyName("Id")] public string? Id { get; set; }
+    [JsonPropertyName("Name")] public string? Name { get; set; }
+    [JsonPropertyName("Title")] public string? Title { get; set; }
+    [JsonPropertyName("Description")] public string? Description { get; set; }
+    [JsonPropertyName("Created")] public string? Created { get; set; }
+    [JsonPropertyName("Creator")] public string? Creator { get; set; }
+    [JsonPropertyName("CreatorId")] public long? CreatorId { get; set; }
+    [JsonPropertyName("Modified")] public string? Modified { get; set; }
+    [JsonPropertyName("Modifier")] public string? Modifier { get; set; }
+    [JsonPropertyName("ModifierId")] public long? ModifierId { get; set; }
+    [JsonPropertyName("Path")] public string? Path { get; set; }
+    [JsonPropertyName("ParentIdPath")] public string? ParentIdPath { get; set; }
+    [JsonPropertyName("ParentPath")] public string? ParentPath { get; set; }
+    [JsonPropertyName("Status")] public string? Status { get; set; }
+    [JsonPropertyName("Template")] public string? Template { get; set; }
+    [JsonPropertyName("MimeType")] public MimeTypeDto? MimeType { get; set; }
+    [JsonPropertyName("Properties")] public object? Properties { get; set; }
+    [JsonPropertyName("Layer")] public string? Layer { get; set; }
+    [JsonPropertyName("Content")] public object? Content { get; set; }
+    [JsonPropertyName("IsInherited")] public bool IsInherited { get; set; }
+}
+
+/// <summary>
+/// DTO cho thông tin MIME Type
+/// </summary>
+public class MimeTypeDto
+{
+    [JsonPropertyName("MimeType")] public string? MimeType { get; set; }
+    [JsonPropertyName("Display")] public string? Display { get; set; }
+}

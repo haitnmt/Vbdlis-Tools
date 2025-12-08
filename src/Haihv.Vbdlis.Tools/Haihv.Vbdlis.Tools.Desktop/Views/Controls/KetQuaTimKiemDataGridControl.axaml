@@ -1,0 +1,140 @@
+<UserControl
+  x:Class="Haihv.Vbdlis.Tools.Desktop.KetQuaTimKiemDataGridControl"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:Haihv.Vbdlis.Tools.Desktop.ViewModels"
+  xmlns:models="using:Haihv.Vbdlis.Tools.Desktop.Models"
+  d:DesignHeight="600"
+  d:DesignWidth="1000"
+  x:DataType="vm:KetQuaTimKiemDataGridViewModel"
+  mc:Ignorable="d">
+
+  <Design.DataContext>
+    <vm:KetQuaTimKiemDataGridViewModel />
+  </Design.DataContext>
+
+  <UserControl.Resources>
+    <SolidColorBrush x:Key="PrimaryButtonBackgroundBrush" Color="#0F6CBD" />
+    <SolidColorBrush x:Key="PrimaryButtonForegroundBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SuccessButtonBackgroundBrush" Color="#107C10" />
+    <SolidColorBrush x:Key="SuccessButtonForegroundBrush" Color="#FFFFFF" />
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="{StaticResource PrimaryButtonBackgroundBrush}" />
+      <Setter Property="Foreground" Value="{StaticResource PrimaryButtonForegroundBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource PrimaryButtonBackgroundBrush}" />
+    </Style>
+    <Style Selector="Button.success">
+      <Setter Property="Background" Value="{StaticResource SuccessButtonBackgroundBrush}" />
+      <Setter Property="Foreground" Value="{StaticResource SuccessButtonForegroundBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource SuccessButtonBackgroundBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <!--  Toolbar  -->
+    <Border
+      DockPanel.Dock="Top"
+      Padding="8"
+      Background="{DynamicResource SystemRegionBrush}"
+      BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+      BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+        <!--  Export Menu Button  -->
+        <Button Grid.Column="0" Margin="0,0,8,0">
+          <Button.Content>
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <TextBlock Text="📊" />
+              <TextBlock Text="Xuất Excel" />
+              <TextBlock Text="▼" FontSize="10" />
+            </StackPanel>
+          </Button.Content>
+          <Button.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedLeft">
+              <MenuItem
+                Command="{Binding ExportExcelCompactCommand}"
+                Header="Xuất Excel - Dạng Compact"
+                IsEnabled="{Binding !IsExporting}">
+                <MenuItem.Icon>
+                  <TextBlock Text="📄" />
+                </MenuItem.Icon>
+              </MenuItem>
+              <MenuItem
+                Command="{Binding ExportExcelFullCommand}"
+                Header="Xuất Excel - Đầy đủ"
+                IsEnabled="{Binding !IsExporting}">
+                <MenuItem.Icon>
+                  <TextBlock Text="📋" />
+                </MenuItem.Icon>
+              </MenuItem>
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+
+        <!--  Status Message  -->
+        <TextBlock
+          Grid.Column="2"
+          VerticalAlignment="Center"
+          FontStyle="Italic"
+          IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+          Text="{Binding StatusMessage}" />
+
+        <!--  Loading Indicator  -->
+        <StackPanel
+          Grid.Column="3"
+          Orientation="Horizontal"
+          Spacing="8"
+          IsVisible="{Binding IsExporting}">
+          <ProgressBar
+            Width="100"
+            Height="4"
+            VerticalAlignment="Center"
+            IsIndeterminate="True" />
+          <TextBlock VerticalAlignment="Center" Text="Đang xuất..." />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!--  DataGrid  -->
+    <DataGrid
+      AutoGenerateColumns="False"
+      GridLinesVisibility="All"
+      IsReadOnly="True"
+      ItemsSource="{Binding KetQuaTimKiemList}"
+      SelectedItem="{Binding SelectedItem}">
+      <DataGrid.Columns>
+        <!--  Chủ sử dụng  -->
+        <DataGridTextColumn
+          Width="*"
+          MinWidth="250"
+          Binding="{Binding ChuSuDung.DisplayInfo}"
+          Header="Chủ sử dụng" />
+
+        <!--  Giấy chứng nhận  -->
+        <DataGridTextColumn
+          Width="*"
+          MinWidth="250"
+          Binding="{Binding GiayChungNhanModel.DisplayInfo}"
+          Header="Giấy chứng nhận" />
+
+        <!--  Thửa đất  -->
+        <DataGridTextColumn
+          Width="*"
+          MinWidth="250"
+          Binding="{Binding ThuaDatModel.DisplayInfo}"
+          Header="Thửa đất" />
+
+        <!--  Tài sản  -->
+        <DataGridTextColumn
+          Width="*"
+          MinWidth="250"
+          Binding="{Binding TaiSan.DisplayInfo}"
+          Header="Tài sản" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</UserControl>

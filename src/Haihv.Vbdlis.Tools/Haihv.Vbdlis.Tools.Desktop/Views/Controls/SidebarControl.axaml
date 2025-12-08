@@ -39,6 +39,17 @@
                     HorizontalContentAlignment="Left"
                     Background="Transparent"
                     BorderThickness="0"
+                    Command="{Binding ShowHomeCommand}"
+                    Content="Trang chủ"
+                    ToolTip.Tip="Quay lại trang chủ" />
+
+                <Button
+                    Padding="15,10"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Command="{Binding ShowCungCapThongTinCommand}"
                     Content="Cung cấp thông tin"
                     ToolTip.Tip="Cung cấp thông tin giấy chứng nhận" />
 
