@@ -171,9 +171,13 @@
                   <Run Text="Diện tích: " />
                   <Run FontWeight="Bold" Text="{Binding DienTichFormatted}" />
                 </SelectableTextBlock>
-                <SelectableTextBlock IsVisible="{Binding MucDichSuDung, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap">
+                <SelectableTextBlock IsVisible="{Binding MucDichSuDungFormatted, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap">
                   <Run Text="Mục đích sử dụng: " />
-                  <Run FontWeight="Bold" Text="{Binding MucDichSuDung}" />
+                  <Run FontWeight="Bold" Text="{Binding MucDichSuDungFormatted}" />
+                </SelectableTextBlock>
+                <SelectableTextBlock IsVisible="{Binding NguonGocSuDungDatFormatted, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap">
+                  <Run Text="Nguồn gốc sử dụng: " />
+                  <Run FontWeight="Bold" Text="{Binding NguonGocSuDungDatFormatted}" />
                 </SelectableTextBlock>
                 <SelectableTextBlock IsVisible="{Binding DiaChi, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap">
                   <Run Text="Địa chỉ: " />

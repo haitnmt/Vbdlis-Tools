@@ -72,12 +72,36 @@ public static class KetQuaTimKiemExxtensions
                     ?? thuaDat.MaThua
                     ?? "";
 
+                // Chuyển đổi ListMucDichSuDung từ DTO sang Model
+                var listMucDichSuDung = thuaDat.ListMucDichSuDung?
+                    .Where(m => !string.IsNullOrWhiteSpace(m.LoaiMucDichSuDungId) && m.DienTich.HasValue && m.DienTich.Value > 0)
+                    .Select(m =>
+                    {
+                        // Chuyển đổi ListNguonGocSuDungDat
+                        var listNguonGoc = m.ListNguonGocSuDungDat?
+                            .Where(n => n.DienTich.HasValue && n.DienTich.Value > 0)
+                            .Select(n => new NguonGocSuDungDatInfo(
+                                tenNguonGocChuyenQuyen: n.LoaiNguonGocChuyenQuyen?.TenNguonGocChuyenQuyen ?? "",
+                                tenLoaiNguonGocInGiay: n.LoaiNguonGocSuDungDat?.TenLoaiNguonGocInGiay ?? "",
+                                dienTich: n.DienTich!.Value
+                            ))
+                            .ToList();
+
+                        return new MucDichSuDungInfo(
+                            loaiMucDichSuDungId: m.LoaiMucDichSuDungId!,
+                            dienTich: m.DienTich!.Value,
+                            listNguonGocSuDungDat: listNguonGoc
+                        );
+                    })
+                    .ToList();
+
                 var thuaDatModel = new ThuaDatModel(
                     soToBanDo: soToBanDo,
                     soThuaDat: soThuaDat,
                     dienTich: dienTich,
                     mucDichSuDung: mucDichSuDung,
-                    diaChi: diaChi
+                    diaChi: diaChi,
+                    listMucDichSuDung: listMucDichSuDung
                 );
 
                 // Lưu thửa đất đầu tiên
@@ -181,12 +205,42 @@ public static class KetQuaTimKiemExxtensions
                                 dienTich = (double)dangky.ThuaDat.DienTich.Value;
                             }
 
+                            // Lấy mục đích sử dụng từ ListMucDichSuDung
+                            var mucDichSuDung = dangky.ThuaDat.ListMucDichSuDung?
+                                .FirstOrDefault()?.LoaiMucDichSuDung?.TenLoaiMucDichSuDung
+                                ?? dangky.ThuaDat.MaThua
+                                ?? "";
+
+                            // Chuyển đổi ListMucDichSuDung từ DTO sang Model
+                            var listMucDichSuDung = dangky.ThuaDat.ListMucDichSuDung?
+                                .Where(m => !string.IsNullOrWhiteSpace(m.LoaiMucDichSuDungId) && m.DienTich.HasValue && m.DienTich.Value > 0)
+                                .Select(m =>
+                                {
+                                    // Chuyển đổi ListNguonGocSuDungDat
+                                    var listNguonGoc = m.ListNguonGocSuDungDat?
+                                        .Where(n => n.DienTich.HasValue && n.DienTich.Value > 0)
+                                        .Select(n => new NguonGocSuDungDatInfo(
+                                            tenNguonGocChuyenQuyen: n.LoaiNguonGocChuyenQuyen?.TenNguonGocChuyenQuyen ?? "",
+                                            tenLoaiNguonGocInGiay: n.LoaiNguonGocSuDungDat?.TenLoaiNguonGocInGiay ?? "",
+                                            dienTich: n.DienTich!.Value
+                                        ))
+                                        .ToList();
+
+                                    return new MucDichSuDungInfo(
+                                        loaiMucDichSuDungId: m.LoaiMucDichSuDungId!,
+                                        dienTich: m.DienTich!.Value,
+                                        listNguonGocSuDungDat: listNguonGoc
+                                    );
+                                })
+                                .ToList();
+
                             var thuaDatModel = new ThuaDatModel(
                                 soToBanDo: soToBanDo,
                                 soThuaDat: soThuaDat,
                                 dienTich: dienTich,
-                                mucDichSuDung: dangky.ThuaDat.MaThua ?? "",
-                                diaChi: diaChi
+                                mucDichSuDung: mucDichSuDung,
+                                diaChi: diaChi,
+                                listMucDichSuDung: listMucDichSuDung
                             );
 
                             // Lưu thửa đất đầu tiên

@@ -394,6 +394,7 @@ public class ThuaDatLightDto
     [JsonPropertyName("diaChi")] public string? DiaChi { get; set; }
     [JsonPropertyName("version")] public int? Version { get; set; }
     [JsonPropertyName("isLastest")] public bool IsLastest { get; set; }
+    [JsonPropertyName("ListMucDichSuDung")] public List<MucDichSuDungDto>? ListMucDichSuDung { get; set; }
 }
 
 // DTO rút gọn cho Cá nhân
@@ -537,7 +538,9 @@ public class MucDichSuDungDto
 {
     [JsonPropertyName("mucDichSuDungId")] public long MucDichSuDungId { get; set; }
     [JsonPropertyName("loaiMucDichSuDungId")] public string? LoaiMucDichSuDungId { get; set; }
+    [JsonPropertyName("dienTich")] public double? DienTich { get; set; }
     [JsonPropertyName("LoaiMucDichSuDung")] public LoaiMucDichSuDungDto? LoaiMucDichSuDung { get; set; }
+    [JsonPropertyName("ListNguonGocSuDungDat")] public List<NguonGocSuDungDatDto>? ListNguonGocSuDungDat { get; set; }
 }
 
 // DTO cho Loại mục đích sử dụng
@@ -545,6 +548,29 @@ public class LoaiMucDichSuDungDto
 {
     [JsonPropertyName("loaiMucDichSuDungId")] public string? LoaiMucDichSuDungId { get; set; }
     [JsonPropertyName("tenLoaiMucDichSuDung")] public string? TenLoaiMucDichSuDung { get; set; }
+}
+
+// DTO cho Nguồn gốc sử dụng đất
+public class NguonGocSuDungDatDto
+{
+    [JsonPropertyName("nguonGocSuDungDatId")] public long NguonGocSuDungDatId { get; set; }
+    [JsonPropertyName("dienTich")] public double? DienTich { get; set; }
+    [JsonPropertyName("LoaiNguonGocSuDungDat")] public LoaiNguonGocSuDungDatDto? LoaiNguonGocSuDungDat { get; set; }
+    [JsonPropertyName("LoaiNguonGocChuyenQuyen")] public LoaiNguonGocChuyenQuyenDto? LoaiNguonGocChuyenQuyen { get; set; }
+}
+
+// DTO cho Loại nguồn gốc sử dụng đất
+public class LoaiNguonGocSuDungDatDto
+{
+    [JsonPropertyName("loaiNguonGocSuDungDatId")] public int LoaiNguonGocSuDungDatId { get; set; }
+    [JsonPropertyName("tenLoaiNguonGocInGiay")] public string? TenLoaiNguonGocInGiay { get; set; }
+}
+
+// DTO cho Loại nguồn gốc chuyển quyền
+public class LoaiNguonGocChuyenQuyenDto
+{
+    [JsonPropertyName("loaiNguonGocChuyenQuyenId")] public int LoaiNguonGocChuyenQuyenId { get; set; }
+    [JsonPropertyName("tenNguonGocChuyenQuyen")] public string? TenNguonGocChuyenQuyen { get; set; }
 }
 
 // DTO cho Địa chỉ

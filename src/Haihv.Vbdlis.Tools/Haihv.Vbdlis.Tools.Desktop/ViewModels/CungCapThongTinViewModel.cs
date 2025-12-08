@@ -45,7 +45,7 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
     [ObservableProperty]
     private bool _isDetailVisible;
 
-    public ObservableCollection<SearchResultModel> SearchResults { get; } = new();
+    public ObservableCollection<SearchResultModel> SearchResults { get; } = [];
 
     /// <summary>
     /// Đăng ký action để cập nhật DataGrid từ View
@@ -305,7 +305,7 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
         Log.Information("Clearing DataGrid results");
         var emptyResponse = new AdvancedSearchGiayChungNhanResponse
         {
-            Data = new List<GiayChungNhanItem>(),
+            Data = [],
             RecordsTotal = 0,
             RecordsFiltered = 0
         };

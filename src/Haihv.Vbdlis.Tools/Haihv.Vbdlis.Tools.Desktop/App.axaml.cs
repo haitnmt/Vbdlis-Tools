@@ -95,6 +95,7 @@ namespace Haihv.Vbdlis.Tools.Desktop
                         DataContext = mainViewModel,
                         MinWidth = 1100,
                         MinHeight = 880,
+                        WindowState = WindowState.Maximized,
                         WindowStartupLocation = WindowStartupLocation.CenterScreen
                     };
 

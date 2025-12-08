@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
+using System.Reflection;
 using System.Threading.Tasks;
 using Haihv.Vbdlis.Tools.Desktop.Services;
 using Avalonia;
@@ -33,6 +34,19 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
 
         [ObservableProperty]
         private CungCapThongTinViewModel? _cungCapThongTinViewModel;
+
+        public static string AppVersion
+        {
+            get
+            {
+                var version = Assembly.GetExecutingAssembly().GetName().Version;
+                return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
+            }
+        }
+
+        public static string AppVersionText => $"Phiên bản: {AppVersion}";
+
+        public static string CopyrightText => $"© {DateTime.Now.Year} vpdkbacninh.vn | haihv.vn";
 
         public MainWindowViewModel(IPlaywrightService playwrightService, ICredentialService credentialService)
         {

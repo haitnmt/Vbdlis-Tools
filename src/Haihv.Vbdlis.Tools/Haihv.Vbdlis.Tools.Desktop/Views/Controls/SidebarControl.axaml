@@ -68,12 +68,9 @@
         </ScrollViewer>
 
         <!--  Phần dưới cùng: Giới thiệu  -->
-        <Border
-            Grid.Row="2"
-            Padding="10"
-            BorderBrush="#cccccc"
-            BorderThickness="0,1,0,0">
+        <Border Grid.Row="2" Padding="10">
             <StackPanel>
+                <Separator Margin="0,0,0,10" />
                 <TextBlock
                     FontSize="12"
                     FontWeight="Bold"
@@ -81,11 +78,11 @@
                 <TextBlock
                     FontSize="11"
                     Foreground="Gray"
-                    Text="Phiên bản: 1.0.0" />
+                    Text="{x:Static vm:MainWindowViewModel.AppVersionText}" />
                 <TextBlock
                     FontSize="11"
                     Foreground="Gray"
-                    Text="© 2025 vpdkbacninh.vn | haihv.vn" />
+                    Text="{x:Static vm:MainWindowViewModel.CopyrightText}" />
             </StackPanel>
         </Border>
     </Grid>

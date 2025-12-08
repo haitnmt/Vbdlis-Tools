@@ -5,8 +5,8 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:vm="using:Haihv.Vbdlis.Tools.Desktop.ViewModels"
-  d:DesignHeight="350"
-  d:DesignWidth="450"
+  d:DesignHeight="460"
+  d:DesignWidth="560"
   x:DataType="vm:LoginViewModel"
   mc:Ignorable="d">
 
@@ -154,6 +154,23 @@
           FontStyle="Italic"
           IsVisible="{Binding LoginStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
           Text="{Binding LoginStatusMessage}" />
+      </StackPanel>
+
+      <!--  Separator  -->
+      <Separator Margin="-16,8,-16,0" />
+
+      <!--  Version and Copyright Info  -->
+      <StackPanel Margin="0,4,0,0" Spacing="4">
+        <TextBlock
+          HorizontalAlignment="Center"
+          FontSize="11"
+          Foreground="Gray"
+          Text="{x:Static vm:MainWindowViewModel.AppVersionText}" />
+        <TextBlock
+          HorizontalAlignment="Center"
+          FontSize="11"
+          Foreground="Gray"
+          Text="{x:Static vm:MainWindowViewModel.CopyrightText}" />
       </StackPanel>
 
     </StackPanel>

@@ -6,6 +6,15 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <CFBundleIconFile>appicon.icns</CFBundleIconFile>
+
+    <!-- Assembly Information -->
+    <AssemblyVersion>1.0.4</AssemblyVersion>
+    <FileVersion>1.0.4</FileVersion>
+    <Version>1.0.4</Version>
+    <Copyright>© 2025 vpdkbacninh.vn | haihv.vn</Copyright>
+    <Company>vpdkbacninh.vn | haihv.vn</Company>
+    <Product>Vbdlis Tools</Product>
+    <Description>Công cụ hỗ trợ làm việc với hệ thống VBDLIS</Description>
   </PropertyGroup>
 
   <ItemGroup>
