@@ -165,7 +165,12 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
         // Clear previous results
         SearchResults.Clear();
 
+        // Clear DataGrid trước khi bắt đầu tìm kiếm
+        ClearDataGridResults();
+
         Log.Information("Starting search loop...");
+        Log.Information("Ensuring CungCapThongTin page...");
+        await _searchService.EnsureCungCapThongTinPageAsync();
 
         // Tổng hợp tất cả kết quả vào một response duy nhất
         var allData = new List<GiayChungNhanItem>();
@@ -203,6 +208,9 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
                             allData.AddRange(response.Data);
                             totalFound += response.Data.Count;
                             SearchProgress = $"Tìm thấy: {item} - {response.Data.Count} kết quả";
+
+                            // Update DataGrid ngay lập tức với kết quả hiện tại
+                            UpdateDataGridResults(allData);
                         }
                         else
                         {
@@ -229,13 +237,31 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
 
             SearchProgress = $"Hoàn thành! Đã tìm {items.Length} mục, tìm thấy {totalFound} kết quả.";
 
-            // Cập nhật DataGrid với tất cả kết quả
-            UpdateDataGridResults(allData);
+            // Cập nhật DataGrid lần cuối với tất cả kết quả (nếu chưa có kết quả nào)
+            if (totalFound > 0)
+            {
+                UpdateDataGridResults(allData);
+            }
         }
         finally
         {
             IsSearching = false;
         }
+    }
+
+    /// <summary>
+    /// Xóa kết quả trong DataGrid control
+    /// </summary>
+    private void ClearDataGridResults()
+    {
+        Log.Information("Clearing DataGrid results");
+        var emptyResponse = new AdvancedSearchGiayChungNhanResponse
+        {
+            Data = new List<GiayChungNhanItem>(),
+            RecordsTotal = 0,
+            RecordsFiltered = 0
+        };
+        _updateDataGridAction?.Invoke(emptyResponse);
     }
 
     /// <summary>

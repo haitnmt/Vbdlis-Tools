@@ -3,8 +3,8 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Haihv.Vbdlis.Tools.Desktop.Views.Controls"
-    xmlns:local="using:Haihv.Vbdlis.Tools.Desktop"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Haihv.Vbdlis.Tools.Desktop"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:Haihv.Vbdlis.Tools.Desktop.ViewModels"
     d:DesignHeight="450"
@@ -39,16 +39,17 @@
                     Height="10"
                     Maximum="{Binding ProgressMaximum}"
                     Value="{Binding ProgressValue}" />
-                <TextBlock
-                    FontSize="12"
-                    Foreground="Gray"
-                    Text="{Binding ProgressPercentage, StringFormat='{}Hoàn thành: {0:0}%'}" />
+                <TextBlock FontSize="12" Foreground="Gray">
+                    <Run Text="{Binding ProgressValue, StringFormat='{}{0:0}'}" />
+                    <Run Text="/" />
+                    <Run Text="{Binding ProgressMaximum, StringFormat='{}{0:0}'}" />
+                    <Run Text=" - " />
+                    <Run Text="{Binding ProgressPercentage, StringFormat='{}{0:0}%'}" />
+                </TextBlock>
             </StackPanel>
         </StackPanel>
 
         <!--  Results DataGrid  -->
-        <local:KetQuaTimKiemDataGridControl
-            x:Name="ResultsDataGrid"
-            Grid.Row="2" />
+        <local:KetQuaTimKiemDataGridControl x:Name="ResultsDataGrid" Grid.Row="2" />
     </Grid>
 </UserControl>

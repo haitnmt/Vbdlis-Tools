@@ -38,8 +38,6 @@ public class CungCapThongTinGiayChungNhanService(
                 "Số phát hành hoặc Số giấy tờ phải được cung cấp để tìm kiếm.");
         }
 
-        _logger.Information("Ensuring CungCapThongTin page...");
-        await EnsureCungCapThongTinPageAsync();
         _logger.Information("Page ensured, creating payload...");
 
         var formData = CungCapThongTinGiayChungNhanPayload.GetAdvancedSearchGiayChungNhanPayload(

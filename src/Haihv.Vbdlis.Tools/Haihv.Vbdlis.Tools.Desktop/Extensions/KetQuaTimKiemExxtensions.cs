@@ -34,6 +34,58 @@ public static class KetQuaTimKiemExxtensions
         return null;
     }
 
+    /// <summary>
+    /// Helper method để lấy thông tin thửa đất từ danh sách liên kết
+    /// </summary>
+    private static void ProcessThuaDatFromLienKet(
+        List<LienKetTaiSanThuaDatDto>? listLienKet,
+        HashSet<string> uniqueThuaDat,
+        ref ThuaDatModel? firstThuaDat)
+    {
+        if (listLienKet == null || listLienKet.Count == 0) return;
+
+        foreach (var lienKet in listLienKet)
+        {
+            if (lienKet?.ThuaDat == null) continue;
+
+            var thuaDat = lienKet.ThuaDat;
+            var soToBanDo = thuaDat.SoHieuToBanDo?.ToString() ?? "";
+            var soThuaDat = thuaDat.SoThuTuThua?.ToString() ?? "";
+            var diaChi = thuaDat.DiaChi ?? "";
+
+            // Tạo key để kiểm tra trùng lặp
+            var thuaDatKey = $"{soToBanDo}|{soThuaDat}|{diaChi}";
+
+            if (!uniqueThuaDat.Contains(thuaDatKey))
+            {
+                uniqueThuaDat.Add(thuaDatKey);
+
+                double? dienTich = null;
+                if (thuaDat.DienTich.HasValue)
+                {
+                    dienTich = (double)thuaDat.DienTich.Value;
+                }
+
+                // Lấy mục đích sử dụng từ ListMucDichSuDung
+                var mucDichSuDung = thuaDat.ListMucDichSuDung?
+                    .FirstOrDefault()?.LoaiMucDichSuDung?.TenLoaiMucDichSuDung
+                    ?? thuaDat.MaThua
+                    ?? "";
+
+                var thuaDatModel = new ThuaDatModel(
+                    soToBanDo: soToBanDo,
+                    soThuaDat: soThuaDat,
+                    dienTich: dienTich,
+                    mucDichSuDung: mucDichSuDung,
+                    diaChi: diaChi
+                );
+
+                // Lưu thửa đất đầu tiên
+                firstThuaDat ??= thuaDatModel;
+            }
+        }
+    }
+
     extension(AdvancedSearchGiayChungNhanResponse giayChungNhanResponse)
     {
         public List<KetQuaTimKiemModel> ToKetQuaTimKiemModels()
@@ -47,13 +99,14 @@ public static class KetQuaTimKiemExxtensions
 
             foreach (var item in giayChungNhanResponse.Data)
             {
-                if (item == null || results.Where(r => r.GiayChungNhanModel.Id == item.GiayChungNhan?.Id).Any())
+                if (item == null || results.Where(r => r.GiayChungNhanModel.Id == item.GiayChungNhan?.Id).Any() || item.GiayChungNhan == null)
                 {
                     continue;
                 }
 
                 // Lấy thông tin Giấy chứng nhận
                 var giayChungNhan = item.GiayChungNhan;
+
                 var giayChungNhanModel = new GiayChungNhanModel(
                     id: giayChungNhan?.Id ?? "",
                     soPhatHanh: giayChungNhan?.SoPhatHanh ?? "",
@@ -94,29 +147,145 @@ public static class KetQuaTimKiemExxtensions
 
                 var chuSuDungModel = new ChuSuDungModel(danhSachChuSoHuu);
 
-                // Lấy thông tin tài sản
-                var taiSan = item.TaiSan?.FirstOrDefault();
-                var thuaDatModel = new ThuaDatModel(
-                    soToBanDo: taiSan?.SoHieuToBanDo?.ToString() ?? "",
-                    soThuaDat: taiSan?.SoThuTuThua?.ToString() ?? "",
-                    dienTich: null,
-                    mucDichSuDung: "",
-                    diaChi: taiSan?.DiaChi ?? ""
-                );
+                // Lấy thông tin tài sản và thửa đất từ ListDangKyQuyen
+                var listDangKyQuyen = giayChungNhan?.ListDangKyQuyen ?? [];
 
-                var taiSanModel = new TaiSanModel(
-                    loaiTaiSan: "",
-                    dienTichXayDung: null,
-                    dienTichSuDung: null,
-                    soTang: "",
-                    diaChi: taiSan?.DiaChi ?? ""
-                );
+                // Tạo HashSet để theo dõi và loại bỏ trùng lặp
+                var uniqueThuaDat = new HashSet<string>();
+                var uniqueTaiSan = new HashSet<string>();
+
+                ThuaDatModel? firstThuaDat = null;
+                TaiSanModel? firstTaiSan = null;
+
+                foreach (var dangky in listDangKyQuyen)
+                {
+                    if (dangky == null) continue;
+
+                    // Xử lý Thửa đất (typeItem = 6)
+                    if (dangky.ThuaDat != null)
+                    {
+                        var soToBanDo = dangky.ThuaDat.SoHieuToBanDo?.ToString() ?? "";
+                        var soThuaDat = dangky.ThuaDat.SoThuTuThua?.ToString() ?? "";
+                        var diaChi = dangky.ThuaDat.DiaChi ?? "";
+
+                        // Tạo key để kiểm tra trùng lặp
+                        var thuaDatKey = $"{soToBanDo}|{soThuaDat}|{diaChi}";
+
+                        if (!uniqueThuaDat.Contains(thuaDatKey))
+                        {
+                            uniqueThuaDat.Add(thuaDatKey);
+
+                            double? dienTich = null;
+                            if (dangky.ThuaDat.DienTich.HasValue)
+                            {
+                                dienTich = (double)dangky.ThuaDat.DienTich.Value;
+                            }
+
+                            var thuaDatModel = new ThuaDatModel(
+                                soToBanDo: soToBanDo,
+                                soThuaDat: soThuaDat,
+                                dienTich: dienTich,
+                                mucDichSuDung: dangky.ThuaDat.MaThua ?? "",
+                                diaChi: diaChi
+                            );
+
+                            // Lưu thửa đất đầu tiên
+                            firstThuaDat ??= thuaDatModel;
+                        }
+                    }
+                    // Xử lý Nhà riêng lẻ (typeItem = 7)
+                    else if (dangky.NhaRiengLe != null)
+                    {
+                        var loaiTaiSan = dangky.NhaRiengLe.LoaiNhaRiengLe?.Detail ?? "Nhà ở riêng lẻ";
+                        var dienTichXayDung = dangky.NhaRiengLe.DienTichXayDung;
+                        var dienTichSuDung = dangky.NhaRiengLe.DienTichSuDung;
+                        var soTang = dangky.NhaRiengLe.SoTang ?? "";
+                        var diaChi = dangky.NhaRiengLe.ListDiaChi?
+                            .FirstOrDefault(d => d.LaDiaChiChinh)?.DiaChiChiTiet
+                            ?? dangky.NhaRiengLe.DiaChi
+                            ?? "";
+
+                        // Tạo key để kiểm tra trùng lặp
+                        var taiSanKey = $"{loaiTaiSan}|{dienTichXayDung}|{soTang}|{diaChi}";
+
+                        if (!uniqueTaiSan.Contains(taiSanKey))
+                        {
+                            uniqueTaiSan.Add(taiSanKey);
+
+                            var taiSanModel = new TaiSanModel(
+                                loaiTaiSan: loaiTaiSan,
+                                dienTichXayDung: dienTichXayDung,
+                                dienTichSuDung: dienTichSuDung,
+                                soTang: soTang,
+                                diaChi: diaChi
+                            );
+
+                            // Lưu tài sản đầu tiên
+                            firstTaiSan ??= taiSanModel;
+                        }
+
+                        // Lấy thông tin thửa đất từ liên kết (nếu chưa có thửa đất)
+                        ProcessThuaDatFromLienKet(dangky.NhaRiengLe.ListLienKetTaiSanThuaDat, uniqueThuaDat, ref firstThuaDat);
+                    }
+                    // Xử lý Căn hộ (typeItem = 8)
+                    else if (dangky.CanHo != null)
+                    {
+                        // Tạo tên tài sản: "Căn hộ soHieuCanHo (tenChungCu)" hoặc "Căn hộ tenCanHo (tenChungCu)"
+                        var soHieuOrTen = dangky.CanHo.SoHieuCanHo ?? dangky.CanHo.TenCanHo ?? "";
+                        var tenChungCu = dangky.CanHo.NhaChungCu?.TenChungCu;
+
+                        string loaiTaiSan;
+                        if (!string.IsNullOrWhiteSpace(tenChungCu))
+                        {
+                            loaiTaiSan = $"Căn hộ {soHieuOrTen} ({tenChungCu})".Trim();
+                        }
+                        else
+                        {
+                            loaiTaiSan = $"Căn hộ {soHieuOrTen}".Trim();
+                        }
+                        var dienTichXayDung = dangky.CanHo.DienTichSan;
+                        var dienTichSuDung = dangky.CanHo.DienTichSuDung;
+                        var soTang = dangky.CanHo.TangSo ?? "";
+                        var diaChi = dangky.CanHo.DiaChiCanHo ?? "";
+
+                        // Tạo key để kiểm tra trùng lặp
+                        var taiSanKey = $"{loaiTaiSan}|{dienTichXayDung}|{soTang}|{diaChi}";
+
+                        if (!uniqueTaiSan.Contains(taiSanKey))
+                        {
+                            uniqueTaiSan.Add(taiSanKey);
+
+                            var taiSanModel = new TaiSanModel(
+                                loaiTaiSan: loaiTaiSan,
+                                dienTichXayDung: dienTichXayDung,
+                                dienTichSuDung: dienTichSuDung,
+                                soTang: soTang,
+                                diaChi: diaChi
+                            );
+
+                            // Lưu tài sản đầu tiên
+                            firstTaiSan ??= taiSanModel;
+                        }
+
+                        // Lấy thông tin thửa đất từ liên kết
+                        // Ưu tiên 1: CanHo.ListLienKetTaiSanThuaDat
+                        if (dangky.CanHo.ListLienKetTaiSanThuaDat != null && dangky.CanHo.ListLienKetTaiSanThuaDat.Count > 0)
+                        {
+                            ProcessThuaDatFromLienKet(dangky.CanHo.ListLienKetTaiSanThuaDat, uniqueThuaDat, ref firstThuaDat);
+                        }
+                        // Ưu tiên 2: NhaChungCu.ListThuaLienKet (nếu không có trong CanHo)
+                        else if (dangky.CanHo.NhaChungCu?.ListThuaLienKet != null)
+                        {
+                            ProcessThuaDatFromLienKet(dangky.CanHo.NhaChungCu.ListThuaLienKet, uniqueThuaDat, ref firstThuaDat);
+                        }
+                    }
+                }
 
                 results.Add(new KetQuaTimKiemModel(
                     ChuSuDung: chuSuDungModel,
                     GiayChungNhanModel: giayChungNhanModel,
-                    ThuaDatModel: thuaDatModel,
-                    TaiSan: taiSanModel
+                    ThuaDatModel: firstThuaDat,
+                    TaiSan: firstTaiSan
                 ));
             }
 

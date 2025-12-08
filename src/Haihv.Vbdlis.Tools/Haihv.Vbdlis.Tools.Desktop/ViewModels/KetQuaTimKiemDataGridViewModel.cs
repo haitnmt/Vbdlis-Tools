@@ -155,9 +155,9 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
                     worksheet.Cells[row, 5].Value = item.GiayChungNhanModel.NgayVaoSo.HasValue && item.GiayChungNhanModel.NgayVaoSo.Value >= new DateTime(1900, 1, 1)
                         ? item.GiayChungNhanModel.NgayVaoSo.Value.ToString("dd/MM/yyyy")
                         : "";
-                    worksheet.Cells[row, 6].Value = item.ThuaDatModel.SoToBanDo;
-                    worksheet.Cells[row, 7].Value = item.ThuaDatModel.SoThuaDat;
-                    worksheet.Cells[row, 8].Value = item.ThuaDatModel.DiaChi;
+                    worksheet.Cells[row, 6].Value = item.ThuaDatModel?.SoToBanDo.ToString() ?? "";
+                    worksheet.Cells[row, 7].Value = item.ThuaDatModel?.SoThuaDat ?? "";
+                    worksheet.Cells[row, 8].Value = item.ThuaDatModel?.DiaChi ?? "";
                 }
 
                 // Auto fit columns
@@ -252,18 +252,24 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
                         ? item.GiayChungNhanModel.NgayVaoSo.Value.ToString("dd/MM/yyyy")
                         : "";
 
-                    // Thửa đất
-                    worksheet.Cells[row, 6].Value = item.ThuaDatModel.SoToBanDo;
-                    worksheet.Cells[row, 7].Value = item.ThuaDatModel.SoThuaDat;
-                    worksheet.Cells[row, 8].Value = item.ThuaDatModel.DienTich > 0 ? item.ThuaDatModel.DienTich : (object)"";
-                    worksheet.Cells[row, 9].Value = item.ThuaDatModel.MucDichSuDung;
-                    worksheet.Cells[row, 10].Value = item.ThuaDatModel.DiaChi;
-                    // Tài sản
-                    worksheet.Cells[row, 11].Value = item.TaiSan.LoaiTaiSan;
-                    worksheet.Cells[row, 12].Value = item.TaiSan.DienTichXayDung > 0 ? item.TaiSan.DienTichXayDung : (object)"";
-                    worksheet.Cells[row, 13].Value = item.TaiSan.DienTichSuDung > 0 ? item.TaiSan.DienTichSuDung : (object)"";
-                    worksheet.Cells[row, 14].Value = item.TaiSan.SoTang;
-                    worksheet.Cells[row, 15].Value = item.TaiSan.DiaChi;
+                    if (item.ThuaDatModel != null)
+                    {
+                        // Thửa đất
+                        worksheet.Cells[row, 6].Value = item.ThuaDatModel.SoToBanDo ?? "";
+                        worksheet.Cells[row, 7].Value = item.ThuaDatModel.SoThuaDat ?? "";
+                        worksheet.Cells[row, 8].Value = item.ThuaDatModel.DienTich > 0 ? item.ThuaDatModel.DienTich : "";
+                        worksheet.Cells[row, 9].Value = item.ThuaDatModel.MucDichSuDung ?? "";
+                        worksheet.Cells[row, 10].Value = item.ThuaDatModel.DiaChi ?? "";
+                    }
+                    if (item.TaiSan != null)
+                    {
+                        // Tài sản
+                        worksheet.Cells[row, 11].Value = item.TaiSan.LoaiTaiSan ?? "";
+                        worksheet.Cells[row, 12].Value = item.TaiSan.DienTichXayDung > 0 ? item.TaiSan.DienTichXayDung : "";
+                        worksheet.Cells[row, 13].Value = item.TaiSan.DienTichSuDung > 0 ? item.TaiSan.DienTichSuDung : "";
+                        worksheet.Cells[row, 14].Value = item.TaiSan.SoTang ?? "";
+                        worksheet.Cells[row, 15].Value = item.TaiSan.DiaChi ?? "";
+                    }
                 }
 
                 // Auto fit columns

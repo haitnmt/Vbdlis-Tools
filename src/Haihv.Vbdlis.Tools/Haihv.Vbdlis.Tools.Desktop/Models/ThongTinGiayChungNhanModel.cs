@@ -5,7 +5,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Models;
 /// <summary>
 /// Thông tin Giấy chứng nhận tổng hợp
 /// </summary>
-public record KetQuaTimKiemModel(ChuSuDungModel ChuSuDung, GiayChungNhanModel GiayChungNhanModel, ThuaDatModel ThuaDatModel, TaiSanModel TaiSan);
+public record KetQuaTimKiemModel(ChuSuDungModel ChuSuDung, GiayChungNhanModel GiayChungNhanModel, ThuaDatModel? ThuaDatModel, TaiSanModel? TaiSan);
 
 public record ChuSuDungModel(string DanhSachChuSoHuu);
 
