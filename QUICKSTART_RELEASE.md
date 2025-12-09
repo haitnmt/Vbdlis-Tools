@@ -2,6 +2,7 @@
 
 ## TL;DR - Cách nhanh nhất
 
+### Một nền tảng (Windows hoặc macOS):
 ```powershell
 # 1. Test build local
 .\build-all.ps1
@@ -13,7 +14,73 @@
 # Done! ✅
 ```
 
+### Nhiều nền tảng (Windows + macOS cùng version):
+```powershell
+# 1. Lock version trước
+.\prepare-release.ps1
+
+# 2. Build Windows
+.\build\windows-velopack.ps1
+
+# 3. Build macOS (trên máy Mac hoặc GitHub Actions)
+./build/macos.sh
+
+# 4. Tạo release
+.\create-release.ps1
+
+# Done! Windows và macOS có cùng version number ✅
+```
+
 ## Chi tiết từng bước
+
+### 🔒 Workflow với Version Lock (Recommended cho multi-platform)
+
+**Khi nào dùng:** Build nhiều nền tảng với cùng version number
+
+#### Bước 1: Lock version
+```powershell
+# Chạy script để khóa version trước khi build
+.\prepare-release.ps1
+
+# Script sẽ:
+# - Tạo version mới dựa trên ngày hiện tại
+# - Cập nhật version.json
+# - Cập nhật .csproj file
+# - Hiển thị version đã lock
+```
+
+**Output:**
+```
+Version locked: 1.0.25012901
+Assembly version: 1.0.2501.2901
+
+Next steps:
+1. Build Windows: .\build\windows-velopack.ps1
+2. Build macOS:   ./build/macos.sh
+3. Create release: .\create-release.ps1
+
+Both builds will use the same version: 1.0.25012901
+```
+
+#### Bước 2: Build platforms
+```powershell
+# Windows
+.\build\windows-velopack.ps1
+
+# macOS (on Mac machine or via GitHub Actions)
+./build/macos.sh
+```
+
+**Lưu ý:** Build scripts sẽ tự động detect version đã lock và KHÔNG tăng build number.
+
+#### Bước 3: Create release
+```powershell
+.\create-release.ps1
+```
+
+### 🚀 Workflow tự động (Nhanh nhất)
+
+**Khi nào dùng:** Build qua GitHub Actions, không quan tâm version khác nhau
 
 ### 1️⃣ Chuẩn bị code
 
@@ -82,6 +149,20 @@ Files nên có:
 
 ## 🆘 Troubleshooting
 
+### Version tăng lên giữa các lần build?
+
+**Nguyên nhân:** Mỗi lần chạy build script, version tự động tăng build number.
+
+**Giải pháp:** Dùng `prepare-release.ps1` để lock version TRƯỚC khi build:
+```powershell
+# 1. Lock version
+.\prepare-release.ps1
+
+# 2. Build tất cả platforms (version sẽ giống nhau)
+.\build\windows-velopack.ps1
+./build/macos.sh
+```
+
 ### Build failed trên GitHub Actions?
 
 **Kiểm tra:**
@@ -104,16 +185,36 @@ Files nên có:
 
 ## ✨ Tips
 
-### Build cùng version cho cả Windows + macOS
+### Kiểm tra version hiện tại
 
 ```powershell
-# Build Windows trước
-.\build\windows-velopack.ps1
-# Version: 1.0.25120901
+# Xem version log
+Get-Content .\build\version.json | ConvertFrom-Json
 
-# Build macOS ngay sau (cùng ngày)
+# Check .csproj version
+Select-String -Path "src\Haihv.Vbdlis.Tools\Haihv.Vbdlis.Tools.Desktop\Haihv.Vbdlis.Tools.Desktop.csproj" -Pattern "<Version>"
+```
+
+### Build cùng version cho cả Windows + macOS
+
+**RECOMMENDED: Dùng prepare-release.ps1**
+```powershell
+# Lock version trước
+.\prepare-release.ps1
+
+# Build cả 2 platforms
+.\build\windows-velopack.ps1
 ./build/macos.sh
-# Version: 1.0.25120901 (CÙNG version!)
+
+# Cả 2 sẽ có CÙNG version number ✅
+```
+
+**Hoặc: Dùng GitHub Actions**
+```powershell
+# Push tag và để GitHub Actions build cả 2 platforms tự động
+.\create-release.ps1
+
+# GitHub sẽ build Windows và macOS cùng lúc với CÙNG version
 ```
 
 ### Skip build local, chỉ dùng GitHub Actions

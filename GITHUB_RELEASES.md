@@ -10,6 +10,56 @@ Tài liệu này hướng dẫn cách tạo releases trên GitHub cho VBDLIS Too
 2. ✅ Build scripts đã được test local (windows-velopack.ps1 và macos.sh)
 3. ✅ Version trong `build/version.json` đã được cập nhật
 
+## 🔒 Version Management
+
+### Version Locking (Recommended cho Multi-Platform)
+
+Khi build nhiều nền tảng (Windows + macOS), dùng `prepare-release.ps1` để **lock version** trước khi build. Điều này đảm bảo cả Windows và macOS có **cùng version number**.
+
+```powershell
+# Bước 1: Lock version
+.\prepare-release.ps1
+
+# Output:
+# Version locked: 1.0.25012901
+# Assembly version: 1.0.2501.2901
+# Next steps:
+# 1. Build Windows: .\build\windows-velopack.ps1
+# 2. Build macOS:   ./build/macos.sh
+# 3. Create release: .\create-release.ps1
+
+# Bước 2: Build platforms (version sẽ KHÔNG tăng)
+.\build\windows-velopack.ps1  # Windows: 1.0.25012901
+./build/macos.sh              # macOS:   1.0.25012901 (CÙNG version!)
+
+# Bước 3: Create release
+.\create-release.ps1
+```
+
+**Lợi ích:**
+- ✅ Windows và macOS có cùng version number
+- ✅ Tránh auto-increment version giữa các lần build
+- ✅ Dễ quản lý và track releases
+
+### Auto-Increment (Default)
+
+Nếu KHÔNG dùng `prepare-release.ps1`, build scripts sẽ tự động tăng build number:
+
+```powershell
+# Build 1 (Windows)
+.\build\windows-velopack.ps1
+# Version: 1.0.25012901
+
+# Build 2 (macOS) - chạy sau vài phút
+./build/macos.sh
+# Version: 1.0.25012902  ⚠️ Khác version!
+```
+
+**Khi nào dùng:**
+- Build từng platform riêng lẻ
+- Không quan tâm version khác nhau giữa platforms
+- Dùng GitHub Actions (build parallel cùng lúc)
+
 ## 🚀 Workflow Tự Động (Recommended)
 
 ### Bước 1: Commit & Push code

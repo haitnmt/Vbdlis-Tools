@@ -60,43 +60,67 @@ DATE_STRING=$(date +%y%m%d)
 TODAY_STRING=$(date +%Y-%m-%d)
 DAY_STRING=$(date +%d)
 
-# Calculate build number from version log
-echo "Calculating build number for today..."
+# Check if version is locked (already set by prepare-release.ps1)
+IS_VERSION_LOCKED=false
 if [ "$LAST_BUILD_DATE" = "$TODAY_STRING" ]; then
-    # Same day, increment build number
-    BUILD_NUM=$((LAST_BUILD_NUMBER + 1))
-    echo "Same day build detected. Incrementing to build #$BUILD_NUM"
-else
-    # New day, reset to 1
-    BUILD_NUM=1
-    echo "New day detected. Starting with build #$BUILD_NUM"
+    # Check if .csproj matches version.json
+    CSPROJ_VERSION=$(grep -oP '<Version>\K[^<]+' "$PROJECT_FILE" | head -1)
+    if [ -n "$CSPROJ_VERSION" ]; then
+        CSPROJ_PATCH=$(echo "$CSPROJ_VERSION" | cut -d'.' -f4)
+        LOG_ASSEMBLY_VERSION=$(grep -o '"assemblyVersion"[[:space:]]*:[[:space:]]*"[^"]*"' "$VERSION_LOG_FILE" | cut -d'"' -f4)
+        LOG_PATCH=$(echo "$LOG_ASSEMBLY_VERSION" | cut -d'.' -f4)
+        
+        if [ "$CSPROJ_PATCH" = "$LOG_PATCH" ]; then
+            IS_VERSION_LOCKED=true
+            echo "Version is LOCKED - using existing version from .csproj"
+            ASSEMBLY_VERSION="$CSPROJ_VERSION"
+            LOG_PACKAGE_VERSION=$(grep -o '"currentVersion"[[:space:]]*:[[:space:]]*"[^"]*"' "$VERSION_LOG_FILE" | cut -d'"' -f4)
+            PACKAGE_VERSION="$LOG_PACKAGE_VERSION"
+            BUILD_NUM=$LAST_BUILD_NUMBER
+            echo "Locked Version: $ASSEMBLY_VERSION (Assembly)"
+            echo "Locked Package Version: $PACKAGE_VERSION (Velopack 3-part SemVer2)"
+            echo "Build Number: $BUILD_NUM"
+        fi
+    fi
 fi
 
-BUILD_NUM_STRING=$(printf "%02d" $BUILD_NUM)
+if [ "$IS_VERSION_LOCKED" = false ]; then
+    # Calculate build number from version log
+    echo "Calculating build number for today..."
+    if [ "$LAST_BUILD_DATE" = "$TODAY_STRING" ]; then
+        # Same day, increment build number
+        BUILD_NUM=$((LAST_BUILD_NUMBER + 1))
+        echo "Same day build detected. Incrementing to build #$BUILD_NUM"
+    else
+        # New day, reset to 1
+        BUILD_NUM=1
+        echo "New day detected. Starting with build #$BUILD_NUM"
+    fi
 
-BUILD_NUM_STRING=$(printf "%02d" $BUILD_NUM)
+    BUILD_NUM_STRING=$(printf "%02d" $BUILD_NUM)
 
-# Create two different version formats
-# 1. Assembly version (4-part): Major.Minor.YYMM.DDBB
-YEAR_MONTH_STRING=$(date +%y%m)
-DAY_BUILD_STRING="$DAY_STRING$BUILD_NUM_STRING"
-ASSEMBLY_VERSION="$MAJOR_MINOR.$YEAR_MONTH_STRING.$DAY_BUILD_STRING"
+    # Create two different version formats
+    # 1. Assembly version (4-part): Major.Minor.YYMM.DDBB
+    YEAR_MONTH_STRING=$(date +%y%m)
+    DAY_BUILD_STRING="$DAY_STRING$BUILD_NUM_STRING"
+    ASSEMBLY_VERSION="$MAJOR_MINOR.$YEAR_MONTH_STRING.$DAY_BUILD_STRING"
 
-# 2. Package version (3-part SemVer2): Major.Minor.YYMMDDBB
-PATCH_NUMBER="$DATE_STRING$BUILD_NUM_STRING"
-PACKAGE_VERSION="$MAJOR_MINOR.$PATCH_NUMBER"
+    # 2. Package version (3-part SemVer2): Major.Minor.YYMMDDBB
+    PATCH_NUMBER="$DATE_STRING$BUILD_NUM_STRING"
+    PACKAGE_VERSION="$MAJOR_MINOR.$PATCH_NUMBER"
 
-echo "Version: $ASSEMBLY_VERSION (Assembly)"
-echo "Package Version: $PACKAGE_VERSION (Velopack 3-part SemVer2)"
-echo "Build Number: $BUILD_NUM"
+    echo "Version: $ASSEMBLY_VERSION (Assembly)"
+    echo "Package Version: $PACKAGE_VERSION (Velopack 3-part SemVer2)"
+    echo "Build Number: $BUILD_NUM"
 
-# Update .csproj with assembly version
-echo -e "\nUpdating version in .csproj to $ASSEMBLY_VERSION..."
-sed -i.bak "s|<AssemblyVersion>.*</AssemblyVersion>|<AssemblyVersion>$ASSEMBLY_VERSION</AssemblyVersion>|g" "$PROJECT_FILE"
-sed -i.bak "s|<FileVersion>.*</FileVersion>|<FileVersion>$ASSEMBLY_VERSION</FileVersion>|g" "$PROJECT_FILE"
-sed -i.bak "s|<Version>.*</Version>|<Version>$ASSEMBLY_VERSION</Version>|g" "$PROJECT_FILE"
-rm -f "${PROJECT_FILE}.bak"
-echo "Updated .csproj: AssemblyVersion=$ASSEMBLY_VERSION"
+    # Update .csproj with assembly version
+    echo -e "\nUpdating version in .csproj to $ASSEMBLY_VERSION..."
+    sed -i.bak "s|<AssemblyVersion>.*</AssemblyVersion>|<AssemblyVersion>$ASSEMBLY_VERSION</AssemblyVersion>|g" "$PROJECT_FILE"
+    sed -i.bak "s|<FileVersion>.*</FileVersion>|<FileVersion>$ASSEMBLY_VERSION</FileVersion>|g" "$PROJECT_FILE"
+    sed -i.bak "s|<Version>.*</Version>|<Version>$ASSEMBLY_VERSION</Version>|g" "$PROJECT_FILE"
+    rm -f "${PROJECT_FILE}.bak"
+    echo "Updated .csproj: AssemblyVersion=$ASSEMBLY_VERSION"
+fi
 
 # Clean previous builds
 echo -e "\nCleaning previous builds..."

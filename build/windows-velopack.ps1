@@ -80,44 +80,81 @@ $yearMonth = [int]$yearMonthString          # still <= 65535
 $dayString = Get-Date -Format "dd"          # always two digits, e.g., "09"
 $todayString = Get-Date -Format "yyyy-MM-dd"
 
-# Determine today's build number from version log
-Write-Host "Calculating build number for today..." -ForegroundColor Yellow
-$buildNumber = 1
+# Check if version is locked (prepared for release)
+$isVersionLocked = $false
 if ($versionLog.lastBuildDate -eq $todayString) {
-    # Same day, increment build number
-    $buildNumber = $versionLog.buildNumber + 1
-    Write-Host "Same day build detected. Incrementing to build #$buildNumber" -ForegroundColor Cyan
+    # Check if current version in log matches expected format for today
+    $expectedDatePrefix = Get-Date -Format "yyMMdd"
+    if ($versionLog.currentVersion -match "\.$expectedDatePrefix\d{2}$") {
+        # Version is for today, check if it's locked by comparing with .csproj
+        if ($csprojContent -match '<Version>([\d\.]+)</Version>') {
+            $csprojVersion = $matches[1]
+            $csprojPatch = $csprojVersion.Split('.')[3]
+            $logPatch = $versionLog.assemblyVersion.Split('.')[3]
+            
+            if ($csprojPatch -eq $logPatch) {
+                $isVersionLocked = $true
+                Write-Host "🔒 Version is LOCKED for release: $($versionLog.currentVersion)" -ForegroundColor Magenta
+                Write-Host "   Will use existing version without incrementing" -ForegroundColor Yellow
+            }
+        }
+    }
+}
+
+# Determine today's build number from version log
+if ($isVersionLocked) {
+    # Use locked version
+    $buildNumber = $versionLog.buildNumber
+    $assemblyVersion = $versionLog.assemblyVersion
+    $packageVersion = $versionLog.currentVersion
+    $majorMinor = $versionLog.majorMinor
+    
+    Write-Host "Using locked version: $packageVersion (build #$buildNumber)" -ForegroundColor Cyan
 }
 else {
-    # New day, reset to 1
+    # Calculate new version
+    Write-Host "Calculating build number for today..." -ForegroundColor Yellow
     $buildNumber = 1
-    Write-Host "New day detected. Starting with build #$buildNumber" -ForegroundColor Cyan
+    if ($versionLog.lastBuildDate -eq $todayString) {
+        # Same day, increment build number
+        $buildNumber = $versionLog.buildNumber + 1
+        Write-Host "Same day build detected. Incrementing to build #$buildNumber" -ForegroundColor Cyan
+    }
+    else {
+        # New day, reset to 1
+        $buildNumber = 1
+        Write-Host "New day detected. Starting with build #$buildNumber" -ForegroundColor Cyan
+    }
+
+    # Create two different version formats:
+    # 1. Assembly version (4-part): Major.Minor.YYMM.DDBB
+    #    All parts <= 65535: Major=1, Minor=0, YYMM=2512, DDBB=0901 (day 09, build 01)
+    $buildNumberString = $buildNumber.ToString("00")
+    $dayBuildString = "$dayString$buildNumberString"
+    $assemblyVersion = "$majorMinor.$yearMonthString.$dayBuildString"
+
+    # 2. Package version (3-part SemVer2): Major.Minor.YYMMDDBB
+    $dateString = Get-Date -Format "yyMMdd"
+    $patchNumber = "$dateString$buildNumberString"
+    $packageVersion = "$majorMinor.$patchNumber"
+
+    Write-Host "Auto-generated versions:" -ForegroundColor Green
+    Write-Host "  Assembly: $assemblyVersion (for .NET - 4 parts, each <= 65535)" -ForegroundColor Gray
+    Write-Host "  Package:  $packageVersion (for Velopack - 3-part SemVer2)" -ForegroundColor Gray
+    Write-Host "  Date: YYMM=$yearMonthString, DD=$dayString, Build #$buildNumber" -ForegroundColor Gray
+
+    # Update version in .csproj (use 4-part assembly version)
+    Write-Host "`nUpdating version in .csproj to $assemblyVersion..." -ForegroundColor Yellow
+    $csprojContent = $csprojContent -replace '<AssemblyVersion>[\d\.]+</AssemblyVersion>', "<AssemblyVersion>$assemblyVersion</AssemblyVersion>"
+    $csprojContent = $csprojContent -replace '<FileVersion>[\d\.]+</FileVersion>', "<FileVersion>$assemblyVersion</FileVersion>"
+    $csprojContent = $csprojContent -replace '<Version>[\d\.]+</Version>', "<Version>$assemblyVersion</Version>"
 }
 
-# Create two different version formats:
-# 1. Assembly version (4-part): Major.Minor.YYMM.DDBB
-#    All parts <= 65535: Major=1, Minor=0, YYMM=2512, DDBB=0901 (day 09, build 01)
-$buildNumberString = $buildNumber.ToString("00")
-$dayBuildString = "$dayString$buildNumberString"
-$assemblyVersion = "$majorMinor.$yearMonthString.$dayBuildString"
-
-# 2. Package version (3-part SemVer2): Major.Minor.YYMMDDBB
-$dateString = Get-Date -Format "yyMMdd"
-$patchNumber = "$dateString$buildNumberString"
-$packageVersion = "$majorMinor.$patchNumber"
-
-Write-Host "Auto-generated versions:" -ForegroundColor Green
-Write-Host "  Assembly: $assemblyVersion (for .NET - 4 parts, each <= 65535)" -ForegroundColor Gray
-Write-Host "  Package:  $packageVersion (for Velopack - 3-part SemVer2)" -ForegroundColor Gray
-Write-Host "  Date: YYMM=$yearMonthString, DD=$dayString, Build #$buildNumber" -ForegroundColor Gray
-
-# Update version in .csproj (use 4-part assembly version)
-Write-Host "`nUpdating version in .csproj to $assemblyVersion..." -ForegroundColor Yellow
-$csprojContent = $csprojContent -replace '<AssemblyVersion>[\d\.]+</AssemblyVersion>', "<AssemblyVersion>$assemblyVersion</AssemblyVersion>"
-$csprojContent = $csprojContent -replace '<FileVersion>[\d\.]+</FileVersion>', "<FileVersion>$assemblyVersion</FileVersion>"
-$csprojContent = $csprojContent -replace '<Version>[\d\.]+</Version>', "<Version>$assemblyVersion</Version>"
-Set-Content -Path $ProjectFile -Value $csprojContent -NoNewline
-Write-Host "Updated .csproj: AssemblyVersion=$assemblyVersion" -ForegroundColor Green
+# Common: Update .csproj and show version info
+if (-not $isVersionLocked) {
+    Set-Content -Path $ProjectFile -Value $csprojContent -NoNewline
+    Write-Host "Updated .csproj: AssemblyVersion=$assemblyVersion" -ForegroundColor Green
+}
 
 # Use packageVersion for Velopack
 $Version = $packageVersion
