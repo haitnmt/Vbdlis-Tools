@@ -210,8 +210,8 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "✅ Application published successfully!" -ForegroundColor Green
 
-# Step 2: Create Velopack package
-Write-Host "`nStep 2: Creating Velopack package..." -ForegroundColor Yellow
+# Step 2: Create Velopack installer
+Write-Host "`nStep 2: Creating Velopack installer..." -ForegroundColor Yellow
 
 $VelopackArgs = @(
     "pack"
@@ -230,6 +230,64 @@ Write-Host "Running Velopack pack with version $Version..." -ForegroundColor Cya
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Velopack packaging failed with exit code $LASTEXITCODE"
+}
+
+Write-Host "✅ Velopack installer created!" -ForegroundColor Green
+
+# Step 3: Create ZIP archive of Setup.exe (avoid browser warning)
+Write-Host "`nStep 3: Creating ZIP archive of Setup.exe..." -ForegroundColor Yellow
+
+# Find the Setup.exe file
+$SetupExe = Get-ChildItem -Path $OutputPath -Filter "*-Setup.exe" | Select-Object -First 1
+
+if ($SetupExe) {
+    $ZipFileName = $SetupExe.Name -replace "-Setup\.exe$", "-Setup.zip"
+    $ZipPath = Join-Path $OutputPath $ZipFileName
+    
+    # Create README for installer ZIP
+    $ReadmePath = Join-Path $OutputPath "README-INSTALLER.txt"
+    @"
+VBDLIS Tools - Installer Package
+Version: $packageVersion
+=================================
+
+CONTENTS:
+- VbdlisTools-$Version-Setup.exe (Velopack Installer)
+
+INSTALLATION:
+1. Extract this ZIP file
+2. Run VbdlisTools-$Version-Setup.exe
+3. Follow the installation wizard
+
+FEATURES:
+- Full installer with auto-update support
+- Installs to Program Files
+- Creates desktop shortcut
+- Automatic Velopack updates
+
+WHY ZIP?
+- Avoids browser download warnings for .exe files
+- Safer distribution method
+- Easy to share
+
+SYSTEM REQUIREMENTS:
+- Windows 10 64-bit or later
+- .NET 10.0 (included)
+
+For more info: https://github.com/haitnmt/Vbdlis-Tools
+"@ | Out-File -FilePath $ReadmePath -Encoding UTF8
+    
+    # Create ZIP with Setup.exe and README
+    Write-Host "Creating ZIP: $ZipFileName..." -ForegroundColor Cyan
+    Compress-Archive -Path $SetupExe.FullName, $ReadmePath -DestinationPath $ZipPath -Force
+    
+    # Remove the README after zipping
+    Remove-Item -Path $ReadmePath -Force
+    
+    Write-Host "✅ Setup ZIP created: $ZipFileName" -ForegroundColor Green
+}
+else {
+    Write-Warning "Setup.exe not found, skipping ZIP creation"
 }
 
 # List generated files

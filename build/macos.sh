@@ -207,44 +207,111 @@ EOF
     find "$PUBLISH_PATH/.playwright" -type d -name "webkit-*" -exec rm -rf {} + 2>/dev/null || true
     find "$PUBLISH_PATH/.playwright" -type d -name "ffmpeg-*" -exec rm -rf {} + 2>/dev/null || true
 
-    # Step 2: Create Velopack release for macOS
-    echo "Creating Velopack release for macOS $ARCH_NAME..."
+    # Step 2: Create DMG installer for macOS
+    echo "Creating DMG installer for macOS $ARCH_NAME..."
 
-    # Find icon file
+    # Create app bundle structure
+    APP_NAME="VbdlisTools"
+    APP_BUNDLE="$DIST_PATH/$ARCH_NAME/$APP_NAME.app"
+    APP_CONTENTS="$APP_BUNDLE/Contents"
+    APP_MACOS="$APP_CONTENTS/MacOS"
+    APP_RESOURCES="$APP_CONTENTS/Resources"
+
+    mkdir -p "$APP_MACOS"
+    mkdir -p "$APP_RESOURCES"
+
+    # Copy published files to app bundle
+    cp -R "$PUBLISH_PATH/"* "$APP_MACOS/"
+
+    # Create Info.plist
+    cat > "$APP_CONTENTS/Info.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>Haihv.Vbdlis.Tools.Desktop</string>
+    <key>CFBundleIconFile</key>
+    <string>appicon</string>
+    <key>CFBundleIdentifier</key>
+    <string>vn.vpdkbacninh.vbdlis-tools</string>
+    <key>CFBundleName</key>
+    <string>VBDLIS Tools</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$PACKAGE_VERSION</string>
+    <key>CFBundleVersion</key>
+    <string>$PACKAGE_VERSION</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>
+EOF
+
+    # Copy icon if exists
     ICON_PATH=""
     if [ -f "$PROJECT_PATH/Assets/appicon.icns" ]; then
         ICON_PATH="$PROJECT_PATH/Assets/appicon.icns"
+        cp "$ICON_PATH" "$APP_RESOURCES/appicon.icns"
         echo "Using icon: $ICON_PATH"
     else
         echo "Warning: No .icns file found in Assets folder"
     fi
 
-    # Build vpk command
-    VPK_CMD=(
-        "vpk" "pack"
-        "--packId" "VbdlisTools"
-        "--packVersion" "$PACKAGE_VERSION"
-        "--packDir" "$PUBLISH_PATH"
-        "--mainExe" "Haihv.Vbdlis.Tools.Desktop"
-        "--outputDir" "$DIST_PATH/$ARCH_NAME"
-        "--packTitle" "VBDLIS Tools"
-        "--packAuthors" "vpdkbacninh.vn"
-        "--runtime" "$RUNTIME"
-    )
+    # Create DMG using hdiutil
+    DMG_NAME="VbdlisTools-$PACKAGE_VERSION-osx-$ARCH_NAME.dmg"
+    DMG_PATH="$DIST_PATH/$ARCH_NAME/$DMG_NAME"
+    TEMP_DMG="$DIST_PATH/$ARCH_NAME/temp.dmg"
 
-    if [ -n "$ICON_PATH" ]; then
-        VPK_CMD+=("--icon" "$ICON_PATH")
-    fi
+    echo "Creating DMG: $DMG_NAME..."
 
-    echo "Running: ${VPK_CMD[@]}"
-    "${VPK_CMD[@]}"
+    # Create temporary DMG
+    hdiutil create -volname "VBDLIS Tools" -srcfolder "$APP_BUNDLE" -ov -format UDRW "$TEMP_DMG"
 
-    if [ $? -ne 0 ]; then
-        echo "Velopack packaging failed for $ARCH_NAME!"
-        exit 1
-    fi
+    # Mount temporary DMG
+    MOUNT_DIR=$(hdiutil attach "$TEMP_DMG" | grep "/Volumes/" | sed 's/.*\/Volumes/\/Volumes/')
 
-    echo "Velopack package created for $ARCH_NAME: $DIST_PATH/$ARCH_NAME"
+    # Create symbolic link to Applications folder
+    ln -s /Applications "$MOUNT_DIR/Applications"
+
+    # Create README
+    cat > "$MOUNT_DIR/README.txt" << EOF
+VBDLIS Tools - macOS Version
+Version: $PACKAGE_VERSION
+=============================
+
+INSTALLATION:
+1. Drag VbdlisTools.app to Applications folder
+2. First run: Right-click → Open (to bypass Gatekeeper)
+3. Enjoy!
+
+FEATURES:
+- Native Apple Silicon ($ARCH_NAME) support
+- Auto-update via Velopack
+- No admin rights required
+
+FIRST RUN:
+- Playwright browsers will download on first use
+- May take a few minutes
+
+For more info: https://github.com/haitnmt/Vbdlis-Tools
+EOF
+
+    # Unmount
+    hdiutil detach "$MOUNT_DIR"
+
+    # Convert to compressed read-only DMG
+    hdiutil convert "$TEMP_DMG" -format UDZO -o "$DMG_PATH"
+    rm "$TEMP_DMG"
+
+    # Clean up app bundle (keep only DMG)
+    rm -rf "$APP_BUNDLE"
+
+    echo "✅ DMG created: $DMG_NAME"
+    echo "DMG location: $DMG_PATH"
 }
 
 # Build based on architecture selection
@@ -263,54 +330,48 @@ fi
 # Create deployment guide
 README_PATH="$DIST_PATH/README.txt"
 cat > "$README_PATH" << EOF
-VBDLIS Tools - Velopack Installer for macOS
+VBDLIS Tools - DMG Installer for macOS
 Version: $PACKAGE_VERSION
-============================================
+=======================================
 
 OUTPUT FILES (per architecture):
 --------------------------------
-  - VbdlisTools-$PACKAGE_VERSION-osx-[arch].zip  - macOS app bundle for installation
-  - RELEASES                                      - Update manifest
+  - VbdlisTools-$PACKAGE_VERSION-osx-[arch].dmg  - DMG installer with drag-and-drop
 
 DEPLOYMENT:
 ----------
 1. For NEW users:
-   - Download and extract VbdlisTools-$PACKAGE_VERSION-osx-[arch].zip
+   - Download VbdlisTools-$PACKAGE_VERSION-osx-[arch].dmg
+   - Open DMG file
    - Drag VbdlisTools.app to Applications folder
-   - Run the app
+   - First run: Right-click → Open (to bypass Gatekeeper)
 
-2. For AUTO-UPDATE:
-   - Upload all files from architecture folder to web server
-   - URL example: https://your-server.com/vbdlis-tools/mac/arm64/
-
-3. Update Configuration:
-   - Velopack SDK is already integrated in the app
-   - Update source is configured to use GitHub Releases
-   - App will check for updates automatically
+2. For GitHub Release:
+   - Upload DMG file to GitHub Releases
+   - Users download and install directly
 
 INSTALLATION:
 ------------
 - Installs to: /Applications/VbdlisTools.app
 - No admin rights required
-- First run may require "Open anyway" in System Preferences > Security
+- Drag-and-drop installation
 
 AUTO-UPDATE:
 -----------
-- App checks for updates on startup
-- Downloads delta updates (only changed files)
-- Updates in background
+- App checks for updates on startup (via Velopack)
+- Downloads updates from GitHub Releases
 - Restart to apply updates
 
 PUBLISHING NEW VERSION:
 ----------------------
 1. Build new version:
    ./build/macos.sh [Configuration] [Architecture]
-   Example: ./build/macos.sh Release both
+   Example: ./build/macos.sh Release arm64
 
 2. Upload to GitHub Releases:
    - Tag format: v$PACKAGE_VERSION
-   - Upload all files from dist/velopack-macos/
-   - Users auto-update on next launch
+   - Upload DMG file
+   - Users download new DMG to update
 
 VERSION FORMAT:
 --------------
@@ -323,13 +384,16 @@ UNINSTALL:
 - Drag VbdlisTools.app to Trash
 - Clean app data: ~/Library/Application Support/VbdlisTools/
 
-For more info: https://docs.velopack.io/
+For more info: https://github.com/haitnmt/Vbdlis-Tools
 EOF
 
 echo -e "\n=== Build Completed Successfully ===" 
 echo "Version: $PACKAGE_VERSION"
 echo "Output folder: $DIST_PATH"
+echo -e "\nGenerated files:"
+ls -lh "$DIST_PATH"/*/*.dmg 2>/dev/null || echo "No DMG files found"
 echo -e "\nNext steps:"
-echo "1. Test installation on macOS"
-echo "2. Upload to GitHub Releases for auto-update"
+echo "1. Test DMG installer on macOS"
+echo "2. Upload DMG to GitHub Releases"
+echo "3. Users can download and drag-drop to install"
 echo -e "\nNote: Playwright browsers NOT included. Downloaded on first run."
