@@ -51,8 +51,7 @@ git push origin "v1.0.25120905"
 
 Sau khi push tag, GitHub sẽ:
 - ✅ Build Windows (Velopack installer)
-- ✅ Build macOS arm64 (Apple Silicon)
-- ✅ Build macOS x64 (Intel)
+- ✅ Build macOS arm64 (Apple Silicon M1/M2/M3/M4)
 - ✅ Tạo GitHub Release
 - ✅ Upload tất cả installers
 
@@ -66,7 +65,6 @@ Files nên có:
 - ✅ `VbdlisTools-[version]-win-Setup.exe`
 - ✅ `VbdlisTools-[version]-win-full.nupkg`
 - ✅ `VbdlisTools-[version]-osx-arm64.zip`
-- ✅ `VbdlisTools-[version]-osx-x64.zip`
 - ✅ `RELEASES` (manifest)
 
 ### 6️⃣ Test auto-update

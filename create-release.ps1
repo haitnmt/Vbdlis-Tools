@@ -141,9 +141,8 @@ Write-Host "✅ Release tag created successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "📺 GitHub Actions will now:" -ForegroundColor Cyan
 Write-Host "   1. Build Windows (Velopack)" -ForegroundColor White
-Write-Host "   2. Build macOS arm64 (Apple Silicon)" -ForegroundColor White
-Write-Host "   3. Build macOS x64 (Intel)" -ForegroundColor White
-Write-Host "   4. Create GitHub Release with all artifacts" -ForegroundColor White
+Write-Host "   2. Build macOS arm64 (Apple Silicon M1/M2/M3/M4)" -ForegroundColor White
+Write-Host "   3. Create GitHub Release with all artifacts" -ForegroundColor White
 Write-Host ""
 Write-Host "🔗 Check progress at:" -ForegroundColor Cyan
 Write-Host "   https://github.com/$RepoPath/actions" -ForegroundColor White

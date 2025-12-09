@@ -65,12 +65,9 @@ jobs:
                   retention-days: 5
 
     build-macos:
-        name: Build macOS
+        name: Build macOS (Apple Silicon)
         needs: prepare-version
         runs-on: macos-latest
-        strategy:
-            matrix:
-                arch: [arm64, x64]
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -87,15 +84,15 @@ jobs:
             - name: Build macOS with Velopack
               run: |
                   chmod +x ./build/macos.sh
-                  ./build/macos.sh Release ${{ matrix.arch }}
+                  ./build/macos.sh Release arm64
 
             - name: Upload macOS artifacts
               uses: actions/upload-artifact@v4
               with:
-                  name: macos-${{ matrix.arch }}-release
+                  name: macos-arm64-release
                   path: |
-                      dist/velopack-macos/${{ matrix.arch }}/*.zip
-                      dist/velopack-macos/${{ matrix.arch }}/RELEASES
+                      dist/velopack-macos/arm64/*.zip
+                      dist/velopack-macos/arm64/RELEASES
                   retention-days: 5
 
     create-release:
@@ -130,9 +127,9 @@ jobs:
                   - Hỗ trợ auto-update qua Velopack
 
                   #### macOS
-                  - **VbdlisTools-$VERSION-osx-arm64.zip** - Cho Mac M1/M2/M3 (Apple Silicon)
-                  - **VbdlisTools-$VERSION-osx-x64.zip** - Cho Mac Intel
+                  - **VbdlisTools-$VERSION-osx-arm64.zip** - Cho Mac M1/M2/M3/M4 (Apple Silicon)
                   - Hỗ trợ auto-update qua Velopack
+                  - **Lưu ý:** Chỉ hỗ trợ Apple Silicon. Mac Intel (x64) không còn được hỗ trợ.
 
                   ### 🚀 Installation
 
@@ -141,8 +138,8 @@ jobs:
                   2. Chạy installer
                   3. Ứng dụng tự động update khi có phiên bản mới
 
-                  **macOS:**
-                  1. Tải file `.zip` phù hợp với chip của bạn
+                  **macOS (Apple Silicon only):**
+                  1. Tải file `VbdlisTools-$VERSION-osx-arm64.zip`
                   2. Giải nén và kéo `VbdlisTools.app` vào thư mục Applications
                   3. Lần đầu chạy: Right-click → Open (để bypass Gatekeeper)
                   4. Ứng dụng tự động update khi có phiên bản mới
@@ -178,8 +175,7 @@ jobs:
                   prerelease: false
                   files: |
                       artifacts/windows-release/*
-                      artifacts/macos-arm64-release/${{ matrix.arch }}/*
-                      artifacts/macos-x64-release/${{ matrix.arch }}/*
+                      artifacts/macos-arm64-release/*
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

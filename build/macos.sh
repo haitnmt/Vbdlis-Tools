@@ -92,9 +92,10 @@ echo "Build Number: $BUILD_NUM"
 
 # Update .csproj with assembly version
 echo -e "\nUpdating version in .csproj to $ASSEMBLY_VERSION..."
-sed -i "s|<AssemblyVersion>.*</AssemblyVersion>|<AssemblyVersion>$ASSEMBLY_VERSION</AssemblyVersion>|g" "$PROJECT_FILE"
-sed -i "s|<FileVersion>.*</FileVersion>|<FileVersion>$ASSEMBLY_VERSION</FileVersion>|g" "$PROJECT_FILE"
-sed -i "s|<Version>.*</Version>|<Version>$ASSEMBLY_VERSION</Version>|g" "$PROJECT_FILE"
+sed -i.bak "s|<AssemblyVersion>.*</AssemblyVersion>|<AssemblyVersion>$ASSEMBLY_VERSION</AssemblyVersion>|g" "$PROJECT_FILE"
+sed -i.bak "s|<FileVersion>.*</FileVersion>|<FileVersion>$ASSEMBLY_VERSION</FileVersion>|g" "$PROJECT_FILE"
+sed -i.bak "s|<Version>.*</Version>|<Version>$ASSEMBLY_VERSION</Version>|g" "$PROJECT_FILE"
+rm -f "${PROJECT_FILE}.bak"
 echo "Updated .csproj: AssemblyVersion=$ASSEMBLY_VERSION"
 
 # Clean previous builds
@@ -223,8 +224,12 @@ EOF
 }
 
 # Build based on architecture selection
-if [ "$ARCH" = "x64" ] || [ "$ARCH" = "both" ]; then
-    build_for_arch "osx-x64" "x64"
+# Note: Only arm64 (Apple Silicon) is supported
+if [ "$ARCH" = "x64" ]; then
+    echo "⚠️  Warning: x64 (Intel) build is deprecated and not recommended."
+    echo "    Modern Macs use Apple Silicon (arm64)."
+    echo "    Use 'arm64' instead, or contact support if Intel build is required."
+    exit 1
 fi
 
 if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "both" ]; then
@@ -251,9 +256,8 @@ DEPLOYMENT:
    - Run the app
 
 2. For AUTO-UPDATE:
-   - Upload all files from each architecture folder to web server
+   - Upload all files from architecture folder to web server
    - URL example: https://your-server.com/vbdlis-tools/mac/arm64/
-   - Or for x64: https://your-server.com/vbdlis-tools/mac/x64/
 
 3. Update Configuration:
    - Velopack SDK is already integrated in the app
