@@ -66,9 +66,11 @@ if ($TagExists) {
     Write-Host "⚠️  Tag $TagName already exists!" -ForegroundColor Yellow
     $DeleteChoice = Read-Host "Delete and recreate? (y/n)"
     if ($DeleteChoice -eq "y") {
-        git tag -d $TagName
+        Write-Host "Deleting local tag..." -ForegroundColor Yellow
+        git tag -d $TagName | Out-Null
+        Write-Host "Deleting remote tag..." -ForegroundColor Yellow
         git push origin ":refs/tags/$TagName" 2>&1 | Out-Null
-        Write-Host "✅ Old tag deleted" -ForegroundColor Green
+        Write-Host "✅ Old tag deleted (local and remote)" -ForegroundColor Green
     }
     else {
         Write-Host "Aborted." -ForegroundColor Yellow
