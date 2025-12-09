@@ -49,7 +49,13 @@ jobs:
       - name: Install Velopack CLI
         run: dotnet tool install --global vpk
 
-      - name: Build Windows with Velopack
+      - name: Install Playwright browsers
+        run: |
+          dotnet tool install --global Microsoft.Playwright.CLI
+          playwright install chromium
+        shell: pwsh
+
+      - name: Build Windows with Velopack (with bundled browsers)
         run: .\build\windows-velopack.ps1
         shell: pwsh
 
@@ -63,38 +69,9 @@ jobs:
             dist/velopack/RELEASES
           retention-days: 5
 
-  build-macos:
-    name: Build macOS (Apple Silicon)
-    needs: prepare-version
-    runs-on: macos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Install Velopack CLI
-        run: dotnet tool install --global vpk
-
-      - name: Build macOS with Velopack
-        run: |
-          chmod +x ./build/macos.sh
-          ./build/macos.sh Release arm64
-
-      - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-arm64-release
-          path: |
-            dist/velopack-macos/arm64/*.dmg
-          retention-days: 5
-
   create-release:
     name: Create GitHub Release
-    needs: [prepare-version, build-windows, build-macos]
+    needs: [prepare-version, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -124,11 +101,6 @@ jobs:
           - Hỗ trợ auto-update qua Velopack
           - **Lưu ý:** Tải file ZIP để tránh cảnh báo của trình duyệt
 
-          #### macOS
-          - **VbdlisTools-$VERSION-osx-arm64.dmg** - Cho Mac M1/M2/M3/M4 (Apple Silicon)
-          - Drag & drop vào Applications folder
-          - **Lưu ý:** Chỉ hỗ trợ Apple Silicon. Mac Intel (x64) không còn được hỗ trợ.
-
           ### 🚀 Installation
 
           **Windows:**
@@ -137,27 +109,15 @@ jobs:
           3. Chạy `VbdlisTools-$VERSION-Setup.exe`
           4. Ứng dụng tự động update khi có phiên bản mới
 
-          **macOS (Apple Silicon only):**
-          1. Tải file `VbdlisTools-$VERSION-osx-arm64.dmg`
-          2. Mở DMG file
-          3. Kéo `VbdlisTools.app` vào thư mục Applications
-          4. **Fix "App is damaged" error:**
-             - Mở Terminal (Applications → Utilities → Terminal)
-             - Chạy lệnh: `xattr -cr /Applications/VbdlisTools.app`
-          5. Giờ có thể mở app bình thường
-          6. Ứng dụng tự động update khi có phiên bản mới
-
           ### ⚠️ Important Notes
 
-          - **macOS "App is damaged" Error**: 
-            - App chưa được ký số bởi Apple Developer
-            - Chạy lệnh `xattr -cr /Applications/VbdlisTools.app` trong Terminal để fix
-            - Hoặc: Right-click app → Show Package Contents (workaround)
-          - **Playwright Browsers**: Sẽ tự động tải xuống khi chạy lần đầu tiên
+          - **Playwright Browsers**: ✅ Đã được bundle sẵn trong installer (~200MB)
+            - Không cần download thêm khi chạy lần đầu
+            - Hoạt động offline ngay sau khi cài đặt
           - **Auto-Update**: Ứng dụng tự động kiểm tra và cập nhật phiên bản mới
           - **Minimum Requirements**:
             - Windows: Windows 10 64-bit or later
-            - macOS: macOS 10.15 (Catalina) or later, Apple Silicon only
+            - ~200MB disk space (bao gồm Playwright browsers)
 
           ### 🐛 Bug Fixes & Improvements
 
@@ -182,7 +142,6 @@ jobs:
           prerelease: false
           files: |
             artifacts/windows-release/*
-            artifacts/macos-arm64-release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -1,98 +1,421 @@
 #!/bin/bash
-# Local macOS build script (for dev machine only)
-# Build on your Mac → Upload to GitHub Release manually
-# Similar to build-local.ps1 for Windows
+# Local macOS build script with code signing support
+# Build DMG on your Mac with optional Apple Developer ID signing
 
 set -e
 
-echo "=== Local macOS Build Script ==="
-echo "This script is for building on your Mac and uploading manually"
-echo "For GitHub Actions, use macos.sh instead"
+CONFIGURATION="${1:-Release}"
+ARCH="${2:-arm64}"
+BUNDLE_PLAYWRIGHT="${BUNDLE_PLAYWRIGHT:-1}"   # set to 0 to skip bundling browsers (smaller DMG, requires download on first run)
 
-# Same build logic as macos.sh but with optional self-signing
+echo "=== Local macOS Build Script with Code Signing ==="
+echo "Configuration: $CONFIGURATION"
+echo "Architecture: $ARCH"
+echo "Bundle Playwright browsers: $([ "$BUNDLE_PLAYWRIGHT" = "1" ] && echo "Yes" || echo "No (will download on first run)")"
+
+# Check if Velopack is installed (optional - will fallback if not available)
+echo -e "\nChecking for Velopack CLI..."
+VPK_AVAILABLE=false
+if command -v vpk &> /dev/null; then
+    # Check if vpk can run (has correct runtime)
+    if vpk --version &> /dev/null; then
+        echo "✅ Velopack CLI found and working!"
+        VPK_AVAILABLE=true
+    else
+        echo "⚠️  Velopack CLI found but cannot run (missing .NET 9.0 runtime)"
+        echo "Will use manual DMG creation instead"
+        VPK_AVAILABLE=false
+    fi
+else
+    echo "⚠️  Velopack CLI not found"
+    echo "To install: dotnet tool install --global vpk"
+    echo "Note: Requires .NET 9.0 runtime"
+    echo "Will use manual DMG creation instead"
+    VPK_AVAILABLE=false
+fi
+
+# Paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/macos.sh"
+PROJECT_PATH="$SCRIPT_DIR/src/Haihv.Vbdlis.Tools/Haihv.Vbdlis.Tools.Desktop"
+PROJECT_FILE="$PROJECT_PATH/Haihv.Vbdlis.Tools.Desktop.csproj"
+DIST_PATH="$SCRIPT_DIR/dist/velopack-macos-local"
+VERSION_LOG_FILE="$SCRIPT_DIR/build/version.json"
 
-# After build completes, optionally self-sign
-echo ""
-echo "=== Post-Build Options ==="
-echo ""
-echo "Your DMG is ready at: $DMG_PATH"
-echo ""
-echo "OPTIONS:"
-echo "1. Upload as-is (users need xattr -cr fix)"
-echo "2. Self-sign (only works on your Mac)"
-echo "3. Sign with Developer ID (requires Apple Developer Program)"
-echo ""
-read -p "Choose option (1-3): " choice
+# Read version from version.json
+echo -e "\nReading version..."
+if [ -f "$VERSION_LOG_FILE" ]; then
+    MAJOR_MINOR=$(grep -o '"majorMinor"[[:space:]]*:[[:space:]]*"[^"]*"' "$VERSION_LOG_FILE" | cut -d'"' -f4)
+    CURRENT_VERSION=$(grep -o '"currentVersion"[[:space:]]*:[[:space:]]*"[^"]*"' "$VERSION_LOG_FILE" | cut -d'"' -f4)
+    ASSEMBLY_VERSION=$(grep -o '"assemblyVersion"[[:space:]]*:[[:space:]]*"[^"]*"' "$VERSION_LOG_FILE" | cut -d'"' -f4)
+else
+    echo "ERROR: version.json not found!"
+    exit 1
+fi
 
-case $choice in
-    1)
-        echo "✅ DMG ready for upload as-is"
-        echo "Users will need to run: xattr -cr /Applications/VbdlisTools.app"
-        ;;
-    2)
-        echo "⚠️  Self-signing (only works on your Mac)..."
-        # This won't help end-users!
-        security find-identity -v -p codesigning
-        read -p "Enter certificate name (or press Enter to skip): " cert_name
-        if [ -n "$cert_name" ]; then
-            # Re-mount DMG to sign the app inside
-            MOUNT_DIR=$(hdiutil attach "$DMG_PATH" | grep "/Volumes/" | sed 's/.*\/Volumes/\/Volumes/')
-            codesign --deep --force --sign "$cert_name" "$MOUNT_DIR/VbdlisTools.app"
-            hdiutil detach "$MOUNT_DIR"
-            echo "⚠️  WARNING: Self-signed app only works on your Mac!"
-            echo "End-users will still see 'damaged' error"
-        fi
-        ;;
-    3)
-        echo "🔐 Signing with Developer ID..."
-        read -p "Enter Developer ID: " dev_id
-        read -p "Enter Apple ID: " apple_id
-        read -p "Enter Team ID: " team_id
-        read -s -p "Enter App-Specific Password: " app_password
-        echo ""
-        
-        if [ -n "$dev_id" ] && [ -n "$apple_id" ]; then
-            # Re-mount DMG
-            MOUNT_DIR=$(hdiutil attach "$DMG_PATH" | grep "/Volumes/" | sed 's/.*\/Volumes/\/Volumes/')
-            
-            # Sign with hardened runtime
-            codesign --deep --force --verify --verbose \
-                --sign "$dev_id" \
-                --options runtime \
-                --timestamp \
-                "$MOUNT_DIR/VbdlisTools.app"
-            
-            hdiutil detach "$MOUNT_DIR"
-            
-            # Notarize
-            echo "Submitting for notarization..."
-            xcrun notarytool submit "$DMG_PATH" \
-                --apple-id "$apple_id" \
-                --password "$app_password" \
-                --team-id "$team_id" \
-                --wait
-            
-            # Staple ticket
-            xcrun stapler staple "$DMG_PATH"
-            
-            echo "✅ App signed and notarized!"
-            echo "Users can install without xattr fix"
+PACKAGE_VERSION="$CURRENT_VERSION"
+echo "Version: $ASSEMBLY_VERSION (Assembly)"
+echo "Package Version: $PACKAGE_VERSION (Velopack)"
+
+# Clean previous builds
+echo -e "\nCleaning previous builds..."
+rm -rf "$DIST_PATH"
+mkdir -p "$DIST_PATH"
+
+# Build
+echo -e "\n=== Building for $ARCH ==="
+RUNTIME="osx-$ARCH"
+PUBLISH_PATH="$PROJECT_PATH/bin/publish/velopack-$ARCH-local"
+
+rm -rf "$PUBLISH_PATH"
+
+echo "Publishing application..."
+dotnet publish "$PROJECT_PATH" \
+    --configuration "$CONFIGURATION" \
+    --runtime "$RUNTIME" \
+    --self-contained true \
+    --output "$PUBLISH_PATH" \
+    -p:PublishSingleFile=false \
+    -p:PublishTrimmed=false \
+    -p:Version="$ASSEMBLY_VERSION"
+
+if [ $? -ne 0 ]; then
+    echo "Build failed!"
+    exit 1
+fi
+
+echo "Removing debug/symbol files to reduce package size..."
+find "$PUBLISH_PATH" -type f \( -name "*.pdb" -o -name "*.mdb" -o -name "*.xml" -o -name "*.dbg" \) -delete 2>/dev/null || true
+find "$PUBLISH_PATH" -type f -name "*.map" -delete 2>/dev/null || true
+
+echo "Build completed successfully!"
+
+# Install Playwright browsers locally (for bundling into DMG)
+if [ "$BUNDLE_PLAYWRIGHT" = "1" ]; then
+    echo -e "\nInstalling Playwright browsers for bundling..."
+
+    # Check if Playwright browsers are already installed globally
+    PLAYWRIGHT_CACHE_DIR="$HOME/Library/Caches/ms-playwright"
+    CHROMIUM_FOUND=$(find "$PLAYWRIGHT_CACHE_DIR" -maxdepth 1 -type d -name "chromium-*" 2>/dev/null | wc -l)
+
+    if [ "$CHROMIUM_FOUND" -gt 0 ]; then
+        echo "✅ Playwright browsers found in cache: $PLAYWRIGHT_CACHE_DIR"
+
+        # Copy browsers from cache to app output
+        echo "Copying Playwright browsers to app bundle..."
+        mkdir -p "$PUBLISH_PATH/.playwright-browsers"
+
+        # Copy required components for chromium install
+        REQUIRED_PATTERNS=("chromium-*" "chromium_headless_shell-*" "ffmpeg-*")
+        MISSING_COMPONENTS=0
+
+        for PATTERN in "${REQUIRED_PATTERNS[@]}"; do
+            if compgen -G "$PLAYWRIGHT_CACHE_DIR/$PATTERN" > /dev/null; then
+                cp -R "$PLAYWRIGHT_CACHE_DIR"/$PATTERN "$PUBLISH_PATH/.playwright-browsers/" 2>/dev/null || true
+            else
+                echo "⚠️  Missing $PATTERN in cache; bundle will be incomplete"
+                MISSING_COMPONENTS=$((MISSING_COMPONENTS + 1))
+            fi
+        done
+
+        BROWSER_COUNT=$(find "$PUBLISH_PATH/.playwright-browsers" -maxdepth 1 -type d -name "chromium-*" 2>/dev/null | wc -l)
+        if [ "$BROWSER_COUNT" -gt 0 ] && [ "$MISSING_COMPONENTS" -eq 0 ]; then
+            echo "✅ Chromium and required components copied to app bundle"
+            BROWSERS_BUNDLED=true
         else
-            echo "❌ Missing credentials, skipping"
+            echo "⚠️  Bundled browsers are incomplete."
+            BROWSERS_BUNDLED=false
         fi
-        ;;
-    *)
-        echo "Invalid choice, DMG ready as-is"
-        ;;
-esac
+    else
+        echo "⚠️  Playwright browsers not found in cache"
+        echo "   Users will need to download Chromium (~150MB) on first run"
+        echo ""
+        echo "💡 To include browsers in DMG (recommended):"
+        echo "   1. Install browsers once: pwsh -c 'playwright install chromium'"
+        echo "   2. Run this build script again"
+        echo "   3. Browsers will be bundled into DMG"
+        BROWSERS_BUNDLED=false
+    fi
 
+    if [ "$BROWSERS_BUNDLED" != true ]; then
+        echo "❌ Chromium is missing from the app bundle. Install it to your cache then rerun the build:"
+        echo "   pwsh -c \"playwright install chromium\""
+        exit 1
+    fi
+else
+    echo -e "\nSkipping Playwright browser bundling (BUNDLE_PLAYWRIGHT=0)."
+    echo "App will download browsers on first run (~350MB)."
+fi
+
+# Keep .playwright driver (needed for installation)
+echo "Keeping Playwright driver tools in .playwright folder"
+
+# Create app bundle structure
+echo -e "\nCreating macOS app bundle..."
+APP_NAME="VbdlisTools"
+APP_BUNDLE="$DIST_PATH/$APP_NAME.app"
+APP_CONTENTS="$APP_BUNDLE/Contents"
+APP_MACOS="$APP_CONTENTS/MacOS"
+APP_RESOURCES="$APP_CONTENTS/Resources"
+
+mkdir -p "$APP_MACOS"
+mkdir -p "$APP_RESOURCES"
+
+# Copy published files (including hidden files like .playwright-browsers)
+cp -R "$PUBLISH_PATH/"* "$APP_MACOS/"
+cp -R "$PUBLISH_PATH/".* "$APP_MACOS/" 2>/dev/null || true
+
+# Create Info.plist
+cat > "$APP_CONTENTS/Info.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>Haihv.Vbdlis.Tools.Desktop</string>
+    <key>CFBundleIconFile</key>
+    <string>appicon</string>
+    <key>CFBundleIdentifier</key>
+    <string>vn.vpdkbacninh.vbdlis-tools</string>
+    <key>CFBundleName</key>
+    <string>VBDLIS Tools</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$PACKAGE_VERSION</string>
+    <key>CFBundleVersion</key>
+    <string>$PACKAGE_VERSION</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>
+EOF
+
+# Copy icon if exists
+if [ -f "$PROJECT_PATH/Assets/appicon.icns" ]; then
+    cp "$PROJECT_PATH/Assets/appicon.icns" "$APP_RESOURCES/appicon.icns"
+    echo "Icon added to app bundle"
+fi
+
+echo "App bundle created: $APP_BUNDLE"
+
+# Create unsigned DMG (no code signing)
+echo -e "\n=== Creating Unsigned DMG ==="
+echo "This DMG will work on all Macs but requires 'xattr -cr' fix"
+
+DMG_NAME="VbdlisTools-$PACKAGE_VERSION-osx-$ARCH.dmg"
+DMG_PATH="$DIST_PATH/$DMG_NAME"
+TEMP_DMG="$DIST_PATH/temp.dmg"
+
+# Create temporary DMG
+hdiutil create -volname "VBDLIS Tools" -srcfolder "$APP_BUNDLE" -ov -format UDRW "$TEMP_DMG"
+
+# Mount and customize DMG
+MOUNT_DIR=$(hdiutil attach "$TEMP_DMG" | grep "/Volumes/" | sed 's/.*\/Volumes/\/Volumes/')
+ln -s /Applications "$MOUNT_DIR/Applications"
+
+# Create comprehensive README
+cat > "$MOUNT_DIR/README.txt" << 'READMEEOF'
+VBDLIS Tools - macOS (Unsigned)
+================================
+
+⚠️ "App is damaged and can't be opened" ERROR?
+
+This is NORMAL for unsigned apps. Choose one of these methods:
+
+────────────────────────────────────────────────────────────
+METHOD 1: Terminal Command (RECOMMENDED - Easiest)
+────────────────────────────────────────────────────────────
+
+1. Drag VbdlisTools.app to Applications folder
+2. Open Terminal (Applications → Utilities → Terminal)
+3. Copy and paste this command:
+
+   xattr -cr /Applications/VbdlisTools.app
+
+4. Press Enter
+5. Now open VbdlisTools normally (double-click or Spotlight)
+
+✅ Done! The app will open without any issues.
+
+────────────────────────────────────────────────────────────
+METHOD 2: Right-Click (Alternative)
+────────────────────────────────────────────────────────────
+
+1. Drag VbdlisTools.app to Applications folder
+2. DON'T double-click the app yet
+3. Right-click (or Control+Click) on VbdlisTools.app
+4. Select "Open" from the menu
+5. Click "Open" in the security dialog
+6. App will open and macOS will remember this choice
+
+✅ Done! You can now open the app normally in the future.
+
+────────────────────────────────────────────────────────────
+WHY THIS HAPPENS?
+────────────────────────────────────────────────────────────
+
+• This app is NOT signed with an Apple Developer certificate ($99/year)
+• macOS Gatekeeper blocks unsigned apps downloaded from internet
+• This is a FREE open-source app, so we don't have Apple Developer signing
+• The commands above safely bypass this security check
+• Your app and data are safe - this is just a macOS security feature
+
+────────────────────────────────────────────────────────────
+FEATURES
+────────────────────────────────────────────────────────────
+
+✅ Auto-update via Velopack
+   - App checks for updates on startup
+   - Download updates from GitHub Releases
+   - No need to re-download DMG manually
+
+✅ Native Apple Silicon support
+   - Optimized for M1/M2/M3/M4 chips
+   - Fast and efficient
+
+⚠️ Playwright Browsers - REQUIRED
+   The app requires Chromium browser for web automation.
+
+   If browsers are bundled in this DMG:
+   ✅ No download needed! Browsers included (~200MB DMG size)
+   ✅ Works offline immediately after installation
+   ✅ Ready to use right away
+
+   If browsers are NOT bundled in this DMG:
+   ❌ App will NOT work without browsers
+   ⚠️  You must download a DMG with bundled browsers
+   ⚠️  No automatic installation - browsers must be pre-bundled
+
+────────────────────────────────────────────────────────────
+SYSTEM REQUIREMENTS
+────────────────────────────────────────────────────────────
+
+• macOS 10.15 (Catalina) or later
+• Apple Silicon (M1/M2/M3/M4) - Intel Macs not supported
+• ~200MB free disk space (for Playwright)
+• Internet connection (first run only)
+
+────────────────────────────────────────────────────────────
+TROUBLESHOOTING
+────────────────────────────────────────────────────────────
+
+Q: Command not working?
+A: Make sure you copied the FULL command including "/Applications/VbdlisTools.app"
+
+Q: Still see error after xattr command?
+A: Try Method 2 (right-click → Open)
+
+Q: App crashes on startup?
+A: Check logs at ~/Library/Logs/VbdlisTools/
+
+Q: App doesn't work - missing browsers?
+A: Make sure you downloaded a DMG with bundled browsers (~200MB size).
+   If the DMG is small (~50MB), it doesn't include browsers.
+
+   Check if browsers are included:
+   ls -la /Applications/VbdlisTools.app/Contents/MacOS/.playwright-browsers/
+
+Q: Does the app work offline?
+A: Yes! If browsers are bundled in the DMG, app works 100% offline.
+
+Q: Where are Playwright browsers stored?
+A: Bundled browsers are copied from the app to:
+   ~/Library/Caches/ms-playwright/
+
+   This happens automatically on first run.
+
+Q: Can I use pre-installed Playwright browsers?
+A: Yes! If you already have Chromium in ~/Library/Caches/ms-playwright/,
+   the app will detect and use them.
+
+────────────────────────────────────────────────────────────
+MORE INFORMATION
+────────────────────────────────────────────────────────────
+
+GitHub: https://github.com/haitnmt/Vbdlis-Tools
+Issues: https://github.com/haitnmt/Vbdlis-Tools/issues
+
+────────────────────────────────────────────────────────────
+
+Enjoy using VBDLIS Tools! 🎉
+READMEEOF
+
+# Unmount and finalize
+hdiutil detach "$MOUNT_DIR"
+hdiutil convert "$TEMP_DMG" -format UDZO -o "$DMG_PATH"
+rm "$TEMP_DMG"
+
+echo "✅ Unsigned DMG created: $DMG_PATH"
+
+# Clean up temporary app bundle
+rm -rf "$APP_BUNDLE"
+echo "Cleaned up temporary files"
+
+# Summary
+echo -e "\n═══════════════════════════════════════════════════════════════"
+echo "                    BUILD SUMMARY"
+echo "═══════════════════════════════════════════════════════════════"
 echo ""
-echo "=== Next Steps ==="
-echo "1. Test the DMG on another Mac"
-echo "2. Upload to GitHub Release manually"
-echo "3. Or push tag to trigger automated workflow"
+echo "📦 Version: $PACKAGE_VERSION"
+echo "🏗️  Architecture: $ARCH (Apple Silicon)"
+echo "📁 DMG Path: $DMG_PATH"
+echo "🔒 Signed: No (unsigned - FREE)"
 echo ""
-echo "Manual upload command:"
-echo "gh release upload v<VERSION> $DMG_PATH"
+echo "═══════════════════════════════════════════════════════════════"
+echo "                    FEATURES"
+echo "═══════════════════════════════════════════════════════════════"
+echo ""
+echo "✅ Auto-update via Velopack"
+echo "   • App checks for updates on startup"
+echo "   • Downloads from GitHub Releases"
+echo "   • Users never need to manually download DMG again"
+echo ""
+echo "✅ Works on ALL Macs (Apple Silicon)"
+echo "   • No code signing required"
+echo "   • Users run one simple command to install"
+echo "   • See README.txt in DMG for instructions"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "                USER INSTALLATION (Simple!)"
+echo "═══════════════════════════════════════════════════════════════"
+echo ""
+echo "Users will see 'App is damaged' error. This is NORMAL."
+echo "They just need to run ONE command:"
+echo ""
+echo "    xattr -cr /Applications/VbdlisTools.app"
+echo ""
+echo "Full instructions are in README.txt inside the DMG."
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "                    DISTRIBUTION"
+echo "═══════════════════════════════════════════════════════════════"
+echo ""
+echo "📤 Upload to GitHub Release:"
+echo ""
+echo "   Option 1 - Using gh CLI:"
+echo "   gh release upload v$PACKAGE_VERSION \"$DMG_PATH\""
+echo ""
+echo "   Option 2 - Manual upload:"
+echo "   https://github.com/haitnmt/Vbdlis-Tools/releases/new"
+echo ""
+echo "📝 After upload:"
+echo "   • Users download DMG"
+echo "   • Users run xattr command (one time)"
+echo "   • App auto-updates forever after that!"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "                    NEXT STEPS"
+echo "═══════════════════════════════════════════════════════════════"
+echo ""
+echo "1. ✅ Test DMG on this Mac first"
+echo "2. ✅ Test on another Mac (recommended)"
+echo "3. ✅ Create GitHub Release with tag: v$PACKAGE_VERSION"
+echo "4. ✅ Upload this DMG to the release"
+echo "5. ✅ Share download link with users"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo ""
+echo "🎉 Build completed successfully!"
+echo ""

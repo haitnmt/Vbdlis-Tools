@@ -139,168 +139,38 @@ namespace Haihv.Vbdlis.Tools.Desktop
         }
 
         /// <summary>
-        /// Ensures Playwright browsers are installed on first run.
-        /// This runs asynchronously in the background during app startup.
-        /// Shows a UI window with installation progress.
-        /// Supported on Windows and MacOS only.
-        /// If installation fails, user can choose to retry or exit the application.
+        /// Checks if Playwright browsers are available (bundled or in system cache).
+        /// No automatic installation - browsers must be bundled in the app or pre-installed.
         /// </summary>
-        private async Task EnsurePlaywrightBrowsersAsync()
+        private Task EnsurePlaywrightBrowsersAsync()
         {
             if (_serviceProvider == null)
             {
                 Log.Warning("Service provider is not initialized");
-                return;
+                return Task.CompletedTask;
             }
 
             var installer = _serviceProvider.GetService<IPlaywrightInstallerService>();
             if (installer == null)
             {
                 Log.Warning("PlaywrightInstallerService is not registered");
-                return;
+                return Task.CompletedTask;
             }
 
             var os = installer.GetOperatingSystem();
-            Log.Information("Checking Playwright browsers installation on {OS}...", os);
+            Log.Information("Checking Playwright browsers on {OS}...", os);
 
-            // Check if auto-install is supported
-            if (!installer.IsAutoInstallSupported())
-            {
-                Log.Warning("Auto-install not supported on {OS}. User must install Playwright manually.", os);
-                return;
-            }
-
-            // Check if browsers are already installed
+            // Check if browsers are available (bundled or in system cache)
             if (installer.IsBrowsersInstalled())
             {
-                Log.Information("Playwright browsers already installed");
-                return;
+                Log.Information("Playwright browsers found (bundled or in cache)");
             }
-
-            // Try to install with retry capability
-            var shouldRetry = true;
-            while (shouldRetry)
+            else
             {
-                var result = await TryInstallPlaywrightAsync(installer, os);
-                Log.Information("Playwright installation result: {Result}", result);
-
-                switch (result)
-                {
-                    case InstallResult.Success:
-                        Log.Information("Playwright installation completed successfully, continuing to main window...");
-                        return;
-
-                    case InstallResult.Retry:
-                        Log.Information("User requested retry for Playwright installation");
-                        shouldRetry = true;
-                        break;
-
-                    case InstallResult.Exit:
-                        Log.Warning("User chose to exit application due to Playwright installation failure");
-                        _isShuttingDown = true;
-                        await Dispatcher.UIThread.InvokeAsync(() =>
-                        {
-                            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-                            {
-                                desktop.Shutdown(1); // Exit code 1 indicates error
-                            }
-                        });
-                        return;
-
-                    default:
-                        shouldRetry = false;
-                        break;
-                }
+                Log.Warning("Playwright browsers not found. Please ensure browsers are bundled in the DMG or pre-installed in system cache.");
             }
-        }
 
-        /// <summary>
-        /// Result of Playwright installation attempt
-        /// </summary>
-        private enum InstallResult
-        {
-            Success,
-            Retry,
-            Exit
-        }
-
-        /// <summary>
-        /// Attempts to install Playwright browsers and returns the result
-        /// </summary>
-        private async Task<InstallResult> TryInstallPlaywrightAsync(IPlaywrightInstallerService installer, string os)
-        {
-            PlaywrightInstallationWindow? progressWindow = null;
-            var tcs = new TaskCompletionSource<InstallResult>();
-
-            try
-            {
-                // Create and show progress window on UI thread
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    progressWindow = new PlaywrightInstallationWindow
-                    {
-                        DataContext = new PlaywrightInstallationViewModel
-                        {
-                            OperatingSystem = os
-                        }
-                    };
-
-                    // Subscribe to window events
-                    progressWindow.RetryRequested += (s, e) =>
-                    {
-                        progressWindow?.Close();
-                        tcs.TrySetResult(InstallResult.Retry);
-                    };
-
-                    progressWindow.ExitRequested += (s, e) =>
-                    {
-                        progressWindow?.Close();
-                        tcs.TrySetResult(InstallResult.Exit);
-                    };
-
-                    progressWindow.Show();
-                });
-
-                Log.Information("Playwright browsers not found. Starting installation...");
-                progressWindow?.StartInstallation();
-
-                // Install browsers with progress updates
-                var success = await installer.EnsureBrowsersInstalledAsync(message =>
-                {
-                    Log.Information("[Playwright] {Message}", message);
-                    progressWindow?.UpdateStatus(message);
-                });
-
-                if (success)
-                {
-                    Log.Information("Playwright browsers installed successfully");
-                    progressWindow?.CompleteInstallation();
-
-                    // Auto-close window after 2 seconds
-                    if (progressWindow != null)
-                    {
-                        await progressWindow.AutoCloseAfterDelayAsync(2000);
-                    }
-
-                    return InstallResult.Success;
-                }
-                else
-                {
-                    Log.Error("Failed to install Playwright browsers");
-                    progressWindow?.SetError("Không thể cài đặt Playwright browsers. Vui lòng kiểm tra kết nối mạng.");
-
-                    // Wait for user action (retry or exit)
-                    return await tcs.Task;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error during Playwright browsers installation");
-                progressWindow?.SetError($"Lỗi: {ex.Message}");
-
-                // Wait for user action (retry or exit)
-                return await tcs.Task;
-            }
+            return Task.CompletedTask;
         }
 
         /// <summary>

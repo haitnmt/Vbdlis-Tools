@@ -201,15 +201,44 @@ Write-Host "Version log updated: $VersionLogFile" -ForegroundColor Green
 Write-Host "  Current Version: $packageVersion" -ForegroundColor Cyan
 Write-Host "  Build Number: $buildNumber" -ForegroundColor Cyan
 
-# Remove Playwright browsers
-Write-Host "`nRemoving Playwright browsers..." -ForegroundColor Yellow
-$PlaywrightPath = Join-Path $PublishPath ".playwright"
-if (Test-Path $PlaywrightPath) {
-    Get-ChildItem -Path $PlaywrightPath -Directory -Filter "chromium-*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
-    Get-ChildItem -Path $PlaywrightPath -Directory -Filter "firefox-*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
-    Get-ChildItem -Path $PlaywrightPath -Directory -Filter "webkit-*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
-    Get-ChildItem -Path $PlaywrightPath -Directory -Filter "ffmpeg-*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
+# Bundle Playwright browsers (for bundling into installer)
+Write-Host "`nBundling Playwright browsers..." -ForegroundColor Yellow
+
+# Check if Playwright browsers are already installed in system cache
+$PlaywrightCacheDir = Join-Path $env:LOCALAPPDATA "ms-playwright"
+$BundledBrowsersPath = Join-Path $PublishPath ".playwright-browsers"
+
+if (Test-Path "$PlaywrightCacheDir\chromium-*") {
+    Write-Host "✅ Playwright browsers found in cache: $PlaywrightCacheDir" -ForegroundColor Green
+
+    # Copy browsers from cache to app output
+    Write-Host "Copying Playwright browsers to app bundle..." -ForegroundColor Cyan
+    New-Item -ItemType Directory -Path $BundledBrowsersPath -Force | Out-Null
+
+    # Copy only chromium (smallest and most compatible)
+    $chromiumDirs = Get-ChildItem -Path $PlaywrightCacheDir -Directory -Filter "chromium-*" -ErrorAction SilentlyContinue
+    if ($chromiumDirs) {
+        foreach ($dir in $chromiumDirs) {
+            Copy-Item -Path $dir.FullName -Destination $BundledBrowsersPath -Recurse -Force
+            Write-Host "✅ Copied $($dir.Name) to app bundle" -ForegroundColor Green
+        }
+        $BrowsersBundled = $true
+    } else {
+        Write-Host "⚠️  No browsers copied. Installer will NOT include browsers." -ForegroundColor Yellow
+        $BrowsersBundled = $false
+    }
+} else {
+    Write-Host "⚠️  Playwright browsers not found in cache: $PlaywrightCacheDir" -ForegroundColor Yellow
+    Write-Host "   Installer will NOT include browsers (~150MB)" -ForegroundColor Yellow
+    Write-Host "" -ForegroundColor Yellow
+    Write-Host "💡 To include browsers in installer (recommended):" -ForegroundColor Cyan
+    Write-Host "   1. Install browsers once: playwright install chromium" -ForegroundColor White
+    Write-Host "   2. Run this build script again" -ForegroundColor White
+    Write-Host "   3. Browsers will be bundled into installer" -ForegroundColor White
+    $BrowsersBundled = $false
 }
+
+Write-Host "Keeping Playwright driver tools in .playwright folder" -ForegroundColor Cyan
 
 # Step 2: Create Velopack release
 Write-Host "`nCreating Velopack release..." -ForegroundColor Yellow
@@ -270,15 +299,18 @@ Version: $Version
 =================================
 
 CONTENTS:
-- VbdlisTools-$Version-Setup.exe (Velopack Installer)
+- VbdlisTools-$Version-Setup.exe (Velopack Installer with bundled Playwright browsers)
 
 INSTALLATION:
 1. Extract this ZIP file
 2. Run VbdlisTools-$Version-Setup.exe
 3. Follow the installation wizard
+4. ✅ Ready to use immediately - no additional downloads needed!
 
 FEATURES:
 - Full installer with auto-update support
+- ✅ Playwright Chromium browser bundled (~200MB)
+- Works offline after installation
 - Installs to %LOCALAPPDATA%\VbdlisTools
 - Creates Start Menu shortcut
 - Automatic Velopack updates
@@ -291,6 +323,7 @@ WHY ZIP?
 SYSTEM REQUIREMENTS:
 - Windows 10 64-bit or later
 - .NET 10.0 (included)
+- ~200MB disk space (includes Playwright browsers)
 
 For more info: https://github.com/haitnmt/Vbdlis-Tools
 "@ | Out-File -FilePath $ReadmeInstallerPath -Encoding UTF8
