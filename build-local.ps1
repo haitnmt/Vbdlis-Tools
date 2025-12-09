@@ -169,6 +169,14 @@ else {
     $csprojContent = $csprojContent -replace '(<PropertyGroup>)', "`$1`n    <Version>$assemblyVersion</Version>"
 }
 
+# Add InformationalVersion for Velopack (3-part version)
+if ($csprojContent -match '<InformationalVersion>.*</InformationalVersion>') {
+    $csprojContent = $csprojContent -replace '<InformationalVersion>.*</InformationalVersion>', "<InformationalVersion>$packageVersion</InformationalVersion>"
+}
+else {
+    $csprojContent = $csprojContent -replace '(<Version>.*</Version>)', "`$1`n    <InformationalVersion>$packageVersion</InformationalVersion>"
+}
+
 Set-Content -Path $ProjectFile -Value $csprojContent -NoNewline
 Write-Host ".csproj updated with version $assemblyVersion" -ForegroundColor Green
 

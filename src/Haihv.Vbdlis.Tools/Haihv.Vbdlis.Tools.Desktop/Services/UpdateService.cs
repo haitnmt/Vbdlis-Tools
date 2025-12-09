@@ -24,9 +24,19 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         {
             _logger = Log.ForContext<UpdateService>();
 
-            // Get current version from assembly
-            var version = Assembly.GetExecutingAssembly().GetName().Version;
-            CurrentVersion = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
+            // Get current version from assembly - use InformationalVersion (3-part) for Velopack compatibility
+            var assembly = Assembly.GetExecutingAssembly();
+            var infoVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            if (!string.IsNullOrEmpty(infoVersion))
+            {
+                CurrentVersion = infoVersion;
+            }
+            else
+            {
+                // Fallback to AssemblyVersion
+                var version = assembly.GetName().Version;
+                CurrentVersion = version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.0";
+            }
 
             _logger.Information("UpdateService initialized. Current version: {Version}", CurrentVersion);
 
