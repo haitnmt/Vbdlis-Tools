@@ -1,3 +1,6 @@
+using System;
+using System.Threading.Tasks;
+
 namespace Haihv.Vbdlis.Tools.Desktop.Services
 {
     /// <summary>
@@ -15,5 +18,10 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         /// Gets the current operating system
         /// </summary>
         string GetOperatingSystem();
+
+        /// <summary>
+        /// Ensures Playwright browsers are available; installs if missing.
+        /// </summary>
+        Task<bool> EnsureBrowsersInstalledAsync(Action<string>? onStatusChange = null);
     }
 }

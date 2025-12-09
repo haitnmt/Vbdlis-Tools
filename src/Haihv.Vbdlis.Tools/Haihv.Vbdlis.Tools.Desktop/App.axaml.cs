@@ -5,13 +5,13 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
-using Haihv.Vbdlis.Tools.Desktop.ViewModels;
 using Haihv.Vbdlis.Tools.Desktop.Views;
 using Haihv.Vbdlis.Tools.Desktop.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Threading.Tasks;
 using Serilog;
+using Haihv.Vbdlis.Tools.Desktop.ViewModels;
 
 namespace Haihv.Vbdlis.Tools.Desktop
 {
@@ -139,38 +139,74 @@ namespace Haihv.Vbdlis.Tools.Desktop
         }
 
         /// <summary>
-        /// Checks if Playwright browsers are available (bundled or in system cache).
-        /// No automatic installation - browsers must be bundled in the app or pre-installed.
+        /// Checks if Playwright browsers are available; attempts install if missing.
         /// </summary>
-        private Task EnsurePlaywrightBrowsersAsync()
+        private async Task EnsurePlaywrightBrowsersAsync()
         {
             if (_serviceProvider == null)
             {
                 Log.Warning("Service provider is not initialized");
-                return Task.CompletedTask;
+                return;
             }
 
             var installer = _serviceProvider.GetService<IPlaywrightInstallerService>();
             if (installer == null)
             {
                 Log.Warning("PlaywrightInstallerService is not registered");
-                return Task.CompletedTask;
+                return;
             }
 
             var os = installer.GetOperatingSystem();
             Log.Information("Checking Playwright browsers on {OS}...", os);
 
-            // Check if browsers are available (bundled or in system cache)
+            // If already installed, we're done
             if (installer.IsBrowsersInstalled())
             {
-                Log.Information("Playwright browsers found (bundled or in cache)");
+                Log.Information("Playwright browsers are ready.");
+                return;
+            }
+
+            // Show installation window with progress/status
+            var installViewModel = new PlaywrightInstallationViewModel
+            {
+                OperatingSystem = os
+            };
+            var installWindow = new PlaywrightInstallationWindow
+            {
+                DataContext = installViewModel,
+                CanResize = false,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen
+            };
+
+            installWindow.Show();
+            installWindow.StartInstallation();
+
+            bool ready;
+            try
+            {
+                ready = await installer.EnsureBrowsersInstalledAsync(message =>
+                {
+                    installWindow.UpdateStatus(message);
+                });
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error while ensuring Playwright browsers");
+                ready = false;
+                installWindow.SetError(ex.Message);
+            }
+
+            if (ready)
+            {
+                installWindow.CompleteInstallation();
+                _ = installWindow.AutoCloseAfterDelayAsync();
+                Log.Information("Playwright browsers are ready.");
             }
             else
             {
-                Log.Warning("Playwright browsers not found. Please ensure browsers are bundled in the DMG or pre-installed in system cache.");
+                installWindow.SetError("Không thể cài đặt Playwright. Vui lòng kiểm tra kết nối mạng hoặc cài thủ công.");
+                Log.Warning("Playwright browsers still missing after attempted install.");
             }
-
-            return Task.CompletedTask;
         }
 
         /// <summary>

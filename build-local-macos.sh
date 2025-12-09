@@ -6,7 +6,7 @@ set -e
 
 CONFIGURATION="${1:-Release}"
 ARCH="${2:-arm64}"
-BUNDLE_PLAYWRIGHT="${BUNDLE_PLAYWRIGHT:-1}"   # set to 0 to skip bundling browsers (smaller DMG, requires download on first run)
+BUNDLE_PLAYWRIGHT="${BUNDLE_PLAYWRIGHT:-0}"   # set to 0 to skip bundling browsers (smaller DMG, requires download on first run)
 
 echo "=== Local macOS Build Script with Code Signing ==="
 echo "Configuration: $CONFIGURATION"
