@@ -11,7 +11,7 @@
     d:DesignWidth="800"
     x:DataType="vm:CungCapThongTinViewModel"
     mc:Ignorable="d">
-    <Grid Margin="15" RowDefinitions="Auto,Auto,*">
+    <Grid Margin="15" RowDefinitions="Auto,*,Auto">
         <!--  Toolbar - Search Buttons  -->
         <StackPanel
             Grid.Row="0"
@@ -23,33 +23,37 @@
             <Button Content="Tìm kiếm theo Thửa Đất" IsEnabled="False" />
         </StackPanel>
 
-        <!--  Progress Bar  -->
+        <!--  Results DataGrid  -->
+        <local:KetQuaTimKiemDataGridControl x:Name="ResultsDataGrid" Grid.Row="1" />
+
+        <!--  Status Bar  -->
         <StackPanel
-            Grid.Row="1"
-            Margin="0,0,0,10"
-            IsVisible="{Binding IsSearching}"
-            Spacing="8">
-            <TextBlock
-                FontSize="14"
-                FontWeight="SemiBold"
-                Text="{Binding SearchProgress}" />
-            <StackPanel Orientation="Horizontal" Spacing="10">
+            Grid.Row="2"
+            Margin="0,15,0,0"
+            Spacing="6">
+            <StackPanel IsVisible="{Binding AreSearchDetailsVisible}" Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="Đang tìm:" />
+                <TextBlock FontWeight="SemiBold" Text="{Binding CurrentSearchDisplay}" />
+            </StackPanel>
+
+            <Grid
+                HorizontalAlignment="Stretch"
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="10"
+                IsVisible="{Binding IsStatusVisible}">
                 <ProgressBar
-                    Width="400"
+                    Grid.Column="0"
                     Height="10"
                     Maximum="{Binding ProgressMaximum}"
                     Value="{Binding ProgressValue}" />
-                <TextBlock FontSize="12" Foreground="Gray">
+                <TextBlock Grid.Column="1" FontSize="12">
                     <Run Text="{Binding ProgressValue, StringFormat='{}{0:0}'}" />
                     <Run Text="/" />
                     <Run Text="{Binding ProgressMaximum, StringFormat='{}{0:0}'}" />
                     <Run Text=" - " />
                     <Run Text="{Binding ProgressPercentage, StringFormat='{}{0:0}%'}" />
                 </TextBlock>
-            </StackPanel>
+            </Grid>
         </StackPanel>
-
-        <!--  Results DataGrid  -->
-        <local:KetQuaTimKiemDataGridControl x:Name="ResultsDataGrid" Grid.Row="2" />
     </Grid>
 </UserControl>

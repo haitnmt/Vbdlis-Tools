@@ -70,13 +70,31 @@ This will:
 - ✅ Push to GitHub
 - ✅ Trigger GitHub Actions to build **Windows version only**
 
-### 3️⃣ Manual Upload macOS DMG
+### 3️⃣ Manual Upload macOS Files
 
-After GitHub Actions completes, manually upload macOS DMG:
+After GitHub Actions completes, upload macOS files for **auto-update support**:
 
+**Recommended (uploads all required files):**
 ```bash
-gh release upload v<version> dist/velopack/VbdlisTools-<version>-osx-arm64.dmg
+./upload-macos-release.sh 1.0.25121030
 ```
+
+**Manual (if needed):**
+```bash
+gh release upload v1.0.25121030 \
+  dist/velopack/VbdlisTools-1.0.25121030-osx-arm64.dmg \
+  dist/velopack/Haihv.Vbdlis.Tools.Desktop-1.0.25121030-osx-full.nupkg \
+  dist/velopack/RELEASES-osx \
+  dist/velopack/releases.osx.json \
+  dist/velopack/assets.osx.json
+```
+
+**Required files for auto-update:**
+- ✅ `VbdlisTools-<version>-osx-arm64.dmg` - Installer for new users
+- ✅ `Haihv.Vbdlis.Tools.Desktop-<version>-osx-full.nupkg` - Update package
+- ✅ `RELEASES-osx` - Version metadata
+- ✅ `releases.osx.json` - Version metadata (JSON)
+- ✅ `assets.osx.json` - Asset metadata
 
 ## 📦 Version Management
 
@@ -134,6 +152,34 @@ When you push a tag (via `create-release.ps1` or `create-release-macos.sh`):
 
 ❌ **PKG** - Not recommended (unsigned, will be blocked)
 
+## 🔄 Auto-Update System
+
+### How it works:
+
+**Windows:**
+- Uses Velopack for auto-updates
+- Checks GitHub Releases on app startup
+- Downloads and installs updates automatically
+
+**macOS:**
+- Uses Velopack for auto-updates
+- Requires **ALL metadata files** uploaded to GitHub Release:
+  - `Haihv.Vbdlis.Tools.Desktop-<version>-osx-full.nupkg`
+  - `RELEASES-osx`
+  - `releases.osx.json`
+  - `assets.osx.json`
+- Checks GitHub Releases on app startup
+- Downloads and installs updates automatically
+
+### Update URL:
+
+Velopack checks for updates at:
+```
+https://github.com/haitnmt/Vbdlis-Tools/releases/latest/download/
+```
+
+Make sure all files are uploaded to the **latest** release for auto-update to work!
+
 ## 🚀 Quick Start
 
 **For Development:**
@@ -159,6 +205,9 @@ When you push a tag (via `create-release.ps1` or `create-release-macos.sh`):
 
 # 4. Upload macOS DMG manually (if built on macOS)
 gh release upload v1.0.25121028 dist/velopack/VbdlisTools-1.0.25121028-osx-arm64.dmg
+
+# Better: Upload all macOS files for auto-update
+./upload-macos-release.sh 1.0.25121028
 ```
 
 ## 🔧 Prerequisites

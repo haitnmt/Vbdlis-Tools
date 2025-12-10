@@ -28,6 +28,9 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
     private string _searchProgress = string.Empty;
 
     [ObservableProperty]
+    private bool _isInitializing;
+
+    [ObservableProperty]
     private double _progressValue;
 
     [ObservableProperty]
@@ -44,6 +47,48 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
 
     [ObservableProperty]
     private bool _isDetailVisible;
+
+    [ObservableProperty]
+    private int _completedItems;
+
+    [ObservableProperty]
+    private int _totalItems;
+
+    [ObservableProperty]
+    private int _foundItems;
+
+    [ObservableProperty]
+    private string _currentSearchItem = string.Empty;
+
+    [ObservableProperty]
+    private string _currentSearchType = string.Empty;
+
+    public bool IsStatusVisible => IsSearching || IsInitializing;
+
+    public bool AreSearchDetailsVisible => IsSearching && !IsInitializing;
+
+    public string StatusSummary
+    {
+        get
+        {
+            if (IsInitializing)
+            {
+                return "Đang khởi tạo, vui lòng chờ...";
+            }
+
+            if (IsSearching)
+            {
+                return string.IsNullOrWhiteSpace(SearchProgress) ? "Đang tìm kiếm..." : SearchProgress;
+            }
+
+            return string.IsNullOrWhiteSpace(SearchProgress) ? "Sẵn sàng" : SearchProgress;
+        }
+    }
+
+    public string CurrentSearchDisplay =>
+        string.IsNullOrWhiteSpace(CurrentSearchItem)
+            ? string.Empty
+            : $"{CurrentSearchType}: {CurrentSearchItem}";
 
     public ObservableCollection<SearchResultModel> SearchResults { get; } = [];
 
@@ -67,6 +112,35 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
             CurrentItem = null;
             IsDetailVisible = false;
         }
+    }
+
+    partial void OnIsSearchingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsStatusVisible));
+        OnPropertyChanged(nameof(AreSearchDetailsVisible));
+        OnPropertyChanged(nameof(StatusSummary));
+    }
+
+    partial void OnIsInitializingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsStatusVisible));
+        OnPropertyChanged(nameof(AreSearchDetailsVisible));
+        OnPropertyChanged(nameof(StatusSummary));
+    }
+
+    partial void OnSearchProgressChanged(string value)
+    {
+        OnPropertyChanged(nameof(StatusSummary));
+    }
+
+    partial void OnCurrentSearchItemChanged(string value)
+    {
+        OnPropertyChanged(nameof(CurrentSearchDisplay));
+    }
+
+    partial void OnCurrentSearchTypeChanged(string value)
+    {
+        OnPropertyChanged(nameof(CurrentSearchDisplay));
     }
 
     [RelayCommand]
@@ -206,9 +280,16 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
         if (items.Length == 0) return;
 
         IsSearching = true;
+        IsInitializing = true;
         ProgressMaximum = items.Length;
         ProgressValue = 0;
         ProgressPercentage = 0;
+        CompletedItems = 0;
+        TotalItems = items.Length;
+        FoundItems = 0;
+        CurrentSearchType = searchType;
+        CurrentSearchItem = string.Empty;
+        SearchProgress = "Đang khởi tạo, vui lòng chờ...";
 
         // Clear previous results
         SearchResults.Clear();
@@ -218,17 +299,19 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
 
         Log.Information("Starting search loop...");
         Log.Information("Ensuring CungCapThongTin page...");
-        await _searchService.EnsureCungCapThongTinPageAsync();
-
-        // Tổng hợp tất cả kết quả vào một response duy nhất
-        var allData = new List<GiayChungNhanItem>();
-        int totalFound = 0;
-
         try
         {
+            await _searchService.EnsureCungCapThongTinPageAsync();
+            IsInitializing = false;
+            SearchProgress = $"Bắt đầu tìm {searchType}...";
+
+            // Tổng hợp tất cả kết quả vào một response duy nhất
+            var allData = new List<GiayChungNhanItem>();
+
             for (int i = 0; i < items.Length; i++)
             {
                 var item = items[i];
+                CurrentSearchItem = item;
                 SearchProgress = $"Đang tìm {searchType}: {item}";
                 Log.Information("Calling search service for item: {Item}", item);
 
@@ -254,7 +337,7 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
                         if (response.Data?.Count > 0)
                         {
                             allData.AddRange(response.Data);
-                            totalFound += response.Data.Count;
+                            FoundItems = allData.Count;
                             SearchProgress = $"Tìm thấy: {item} - {response.Data.Count} kết quả";
 
                             // Update DataGrid ngay lập tức với kết quả hiện tại
@@ -273,6 +356,7 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
                     SearchProgress = $"Lỗi khi tìm: {item}";
                 }
 
+                CompletedItems = i + 1;
                 ProgressValue = i + 1;
                 ProgressPercentage = (ProgressValue / ProgressMaximum) * 100;
 
@@ -283,16 +367,25 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
                 }
             }
 
-            SearchProgress = $"Hoàn thành! Đã tìm {items.Length} mục, tìm thấy {totalFound} kết quả.";
+            SearchProgress = $"Hoàn thành! Đã tìm {items.Length} mục, tìm thấy {FoundItems} kết quả.";
 
             // Cập nhật DataGrid lần cuối với tất cả kết quả (nếu chưa có kết quả nào)
-            if (totalFound > 0)
+            if (FoundItems > 0)
             {
                 UpdateDataGridResults(allData);
             }
         }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error trong PerformSearchAsync");
+            SearchProgress = $"Lỗi: {ex.Message}";
+            throw;
+        }
         finally
         {
+            CurrentSearchItem = string.Empty;
+            CurrentSearchType = string.Empty;
+            IsInitializing = false;
             IsSearching = false;
         }
     }

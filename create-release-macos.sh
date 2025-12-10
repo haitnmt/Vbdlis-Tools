@@ -162,7 +162,7 @@ fi
 
 # Get repo URL
 REPO_URL=$(git config --get remote.origin.url)
-REPO_PATH=$(echo "$REPO_URL" | sed -E 's|.*github.com[:/](.*?)(\.git)?$|\1|')
+REPO_PATH=$(echo "$REPO_URL" | sed -E 's|.*github\.com[:/](.+)(\.git)?$|\1|' | sed 's|\.git$||')
 
 echo ""
 echo "✅ Release tag created successfully!"
@@ -187,7 +187,22 @@ echo "📝 Note:"
 echo "   - macOS builds should be done locally and manually uploaded"
 echo "   - Only Windows builds on GitHub Actions"
 echo ""
-echo "📦 To upload macOS DMG to release:"
-echo "   gh release upload v$VERSION dist/velopack/VbdlisTools-$VERSION-osx-arm64.dmg"
+echo "📦 To upload macOS files (RECOMMENDED - includes all auto-update files):"
+echo "   ./upload-macos-release.sh $VERSION"
+echo ""
+echo "   This will upload:"
+echo "   ✅ DMG installer"
+echo "   ✅ .nupkg update package"
+echo "   ✅ RELEASES-osx metadata"
+echo "   ✅ releases.osx.json metadata"
+echo "   ✅ assets.osx.json metadata"
+echo ""
+echo "   Or manually:"
+echo "   gh release upload v$VERSION \\"
+echo "     dist/velopack/VbdlisTools-$VERSION-osx-arm64.dmg \\"
+echo "     dist/velopack/Haihv.Vbdlis.Tools.Desktop-$VERSION-osx-full.nupkg \\"
+echo "     dist/velopack/RELEASES-osx \\"
+echo "     dist/velopack/releases.osx.json \\"
+echo "     dist/velopack/assets.osx.json"
 echo ""
 echo "🎉 Done!"
