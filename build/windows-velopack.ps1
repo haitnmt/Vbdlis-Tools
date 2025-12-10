@@ -80,9 +80,17 @@ $yearMonth = [int]$yearMonthString          # still <= 65535
 $dayString = Get-Date -Format "dd"          # always two digits, e.g., "09"
 $todayString = Get-Date -Format "yyyy-MM-dd"
 
-# Check if version is locked (prepared for release)
+# Check if running in GitHub Actions (always use locked version)
+$isGitHubActions = $env:GITHUB_ACTIONS -eq "true"
+
+# Check if version is locked (prepared for release or GitHub Actions)
 $isVersionLocked = $false
-if ($versionLog.lastBuildDate -eq $todayString) {
+if ($isGitHubActions) {
+    $isVersionLocked = $true
+    Write-Host "🔒 Running in GitHub Actions - using LOCKED version" -ForegroundColor Magenta
+    Write-Host "   Version: $($versionLog.currentVersion) (no auto-increment)" -ForegroundColor Yellow
+}
+elseif ($versionLog.lastBuildDate -eq $todayString) {
     # Check if current version in log matches expected format for today
     $expectedDatePrefix = Get-Date -Format "yyMMdd"
     if ($versionLog.currentVersion -match "\.$expectedDatePrefix\d{2}$") {
@@ -91,7 +99,7 @@ if ($versionLog.lastBuildDate -eq $todayString) {
             $csprojVersion = $matches[1]
             $csprojPatch = $csprojVersion.Split('.')[3]
             $logPatch = $versionLog.assemblyVersion.Split('.')[3]
-            
+
             if ($csprojPatch -eq $logPatch) {
                 $isVersionLocked = $true
                 Write-Host "🔒 Version is LOCKED for release: $($versionLog.currentVersion)" -ForegroundColor Magenta

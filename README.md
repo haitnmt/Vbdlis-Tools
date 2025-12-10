@@ -4,165 +4,147 @@ Công cụ hỗ trợ làm việc với hệ thống VBDLIS.
 
 ## 🚀 Quick Start
 
-### Windows Deployment
+### Local Build (Windows)
 
 ```powershell
-# Build
-.\build\windows-simple.ps1 -Version "1.0.4"
+# Build locally with auto-increment version
+.\build-local.ps1
 
-# Deploy to network share
-xcopy /E /I "dist\network-share\*" "\\server\Setups\VbdlisTools\"
+# Output: dist/velopack/VbdlisTools-{version}-Setup.zip
 ```
 
-### macOS Deployment
+### Local Build (macOS)
 
 ```bash
-# Build
-./build/macos.sh Release 1.0.4 both
+# Build locally with auto-increment version
+# Set BUNDLE_PLAYWRIGHT=1 to include browsers (~200MB DMG)
+BUNDLE_PLAYWRIGHT=1 ./build-local-macos.sh
 
-# Output: dist/macos/*.dmg
+# Output: dist/velopack-macos-local/VbdlisTools-{version}-osx-arm64.dmg
 ```
-
-**→ Xem chi tiết:** [BUILD_DEPLOY.md](BUILD_DEPLOY.md)
 
 ---
 
-## 📋 Build Scripts
+## 📦 Create GitHub Release
+
+```powershell
+# Step 1: Build locally (auto-increments version)
+.\build-local.ps1
+
+# Step 2: Create release (uses version from build-local.ps1)
+.\create-release.ps1
+
+# GitHub Actions will:
+# - Build Windows ONLY (no version increment)
+# - Create GitHub Release
+# - Upload Windows installer
+```
+
+**Note:** macOS builds must be done locally and manually uploaded to GitHub Release.
+
+---
+
+## 🔧 Build Scripts
 
 | Script | Platform | Purpose |
 |--------|----------|---------|
-| **windows-simple.ps1** | Windows | Network share / Portable ⭐ |
-| **windows-velopack.ps1** | Windows | Auto-update installer |
-| **windows-innosetup.ps1** | Windows | Traditional Setup.exe |
-| **windows-msix.ps1** | Windows | Microsoft Store package |
-| **macos.sh** | macOS | .app bundle + DMG |
-
-**→ Xem chi tiết:** [build/README.md](build/README.md)
+| **build-local.ps1** | Windows | Local build with auto-increment version |
+| **build-local-macos.sh** | macOS | Local build with auto-increment version |
+| **build\windows-velopack.ps1** | Windows | Build script (called by build-local.ps1 and GitHub Actions) |
 
 ---
 
-## 📚 Documentation
+## 📝 Version Management
 
-- **[GITHUB_RELEASES.md](GITHUB_RELEASES.md)** - 🌟 Hướng dẫn tạo releases trên GitHub
-- **[build/VERSION_MANAGEMENT.md](build/VERSION_MANAGEMENT.md)** - Quản lý version đồng bộ
-- **[build/README.md](build/README.md)** - Hướng dẫn build scripts
-- **[BUILD_DEPLOY.md](BUILD_DEPLOY.md)** - Chi tiết deployment
-- **[DEPLOYMENT_COMPARISON.md](DEPLOYMENT_COMPARISON.md)** - So sánh phương pháp
-- **[VELOPACK_AVALONIA_SETUP.md](VELOPACK_AVALONIA_SETUP.md)** - Setup auto-update
-- **[CLICKONCE_MIGRATION.md](CLICKONCE_MIGRATION.md)** - Vì sao không dùng ClickOnce
+Version format: `Major.Minor.YYMMDDBB`
+- Example: `1.0.25121001`
+  - `1.0` - Major.Minor version
+  - `251210` - Date (2025-12-10)
+  - `01` - Build number (increments per day)
 
----
+### Version File: `build/version.json`
 
-## 🎯 Creating Releases
-
-### Quick Release (Recommended)
-
-```powershell
-# 1. Build and test locally
-.\build-all.ps1
-
-# 2. Create release tag
-.\create-release.ps1
-
-# GitHub Actions will automatically:
-# - Build for Windows, macOS (arm64 + x64)
-# - Create GitHub Release
-# - Upload all installers
+```json
+{
+  "majorMinor": "1.0",
+  "currentVersion": "1.0.25121001",
+  "assemblyVersion": "1.0.2512.1001",
+  "lastBuildDate": "2025-12-10",
+  "buildNumber": 1,
+  "platforms": {
+    "windows": {
+      "lastBuilt": "2025-12-10T07:45:00",
+      "version": "1.0.25121001"
+    },
+    "macos": {
+      "lastBuilt": "",
+      "version": ""
+    }
+  }
+}
 ```
 
-### Manual Steps
+### Auto-Increment Behavior
 
-```bash
-# Commit changes
-git add .
-git commit -m "feat: new features"
-git push
+- **Local builds** (`build-local.ps1` or `build-local-macos.sh`):
+  - ✅ Auto-increments version
+  - ✅ Updates `build/version.json`
+  - ✅ Updates `.csproj` file
 
-# Create release tag
-git tag -a "v1.0.25120905" -m "Release v1.0.25120905"
-git push origin "v1.0.25120905"
-
-# GitHub Actions runs automatically
-# Check: https://github.com/haitnmt/Vbdlis-Tools/actions
-```
-
-**→ Chi tiết:** [GITHUB_RELEASES.md](GITHUB_RELEASES.md)
+- **GitHub Actions** (`.github/workflows/release.yml`):
+  - 🔒 Uses LOCKED version from `build/version.json`
+  - ❌ Does NOT auto-increment
+  - ✅ Builds Windows ONLY
 
 ---
 
 ## 🛠️ Tech Stack
 
 - **.NET 10.0** - Framework
-- **Avalonia UI** - Cross-platform UI framework
+- **Avalonia UI** - Cross-platform UI
 - **SQLite** - Database
 - **Playwright** - Browser automation
 - **Serilog** - Logging
 - **EPPlus** - Excel processing
+- **Velopack** - Auto-update installer
 
 ---
 
-## 📦 Deployment Options
-
-### 1. Simple Network Share (Khuyến nghị) ⭐
-
-```powershell
-.\build\windows-simple.ps1
-```
-
-- ✅ Đơn giản nhất
-- ✅ Không cần dependencies
-- ✅ Phù hợp LAN deployment
-
-### 2. Auto-Update với Velopack
-
-```powershell
-.\build\windows-velopack.ps1
-```
-
-- ✅ Auto-update tự động
-- ✅ Delta updates
-- ⚠️ Cần .NET 9.0 runtime
-
-### 3. Traditional Installer
-
-```powershell
-.\build\windows-innosetup.ps1 -CreateSetup
-```
-
-- ✅ Setup.exe truyền thống
-- ❌ Cần admin rights
-
-### 4. Microsoft Store
-
-```powershell
-.\build\windows-msix.ps1 -Sign
-```
-
-- ✅ Store-ready package
-- ⚠️ Cần certificate
-
----
-
-## ⚠️ ClickOnce Note
-
-**ClickOnce KHÔNG tương thích** với .NET 10.0 + Avalonia.
-
-Đã thay thế bằng các phương pháp modern. Xem [CLICKONCE_MIGRATION.md](CLICKONCE_MIGRATION.md) để biết thêm chi tiết.
-
----
-
-## 🔧 Requirements
+## 📋 Requirements
 
 ### For Building:
-- **.NET 10.0 SDK** (required)
-- **Windows SDK** (for MSIX)
-- **Inno Setup** (for traditional installer)
-- **.NET 9.0 Runtime** (for Velopack)
+- **.NET 10.0 SDK**
+- **Velopack CLI** (auto-installed by build scripts)
+- **Playwright browsers** (auto-installed: `playwright install chromium`)
 
 ### For Running:
 - **Windows 10+** or **macOS 10.15+**
-- **.NET 10.0 Runtime** (if not self-contained)
-- **Internet connection** (for Playwright first-run)
+- **.NET 10.0 Runtime** (included in installer)
+- **Internet connection** (first run only)
+
+---
+
+## ⚠️ Playwright Installation Issue
+
+If you encounter the error:
+```
+Couldn't find project using Playwright. Ensure a project or a solution exists
+```
+
+**Fix:**
+```powershell
+# Windows
+cd src\Haihv.Vbdlis.Tools\Haihv.Vbdlis.Tools.Desktop
+dotnet build
+playwright install chromium
+
+# macOS
+cd src/Haihv.Vbdlis.Tools/Haihv.Vbdlis.Tools.Desktop
+dotnet build
+playwright install chromium
+```
+
+The build scripts now handle Playwright browser installation automatically.
 
 ---
 
@@ -174,7 +156,4 @@ git push origin "v1.0.25120905"
 
 ## 🆘 Support
 
-Gặp vấn đề? Check:
-1. [BUILD_DEPLOY.md](BUILD_DEPLOY.md) - Chi tiết deployment
-2. [build/README.md](build/README.md) - Build scripts guide
-3. [VELOPACK_AVALONIA_SETUP.md](VELOPACK_AVALONIA_SETUP.md) - Auto-update
+For issues or questions, please open an issue on GitHub.

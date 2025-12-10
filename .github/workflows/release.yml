@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     tags:
-      - "v*.*.*" # Triggers on version tags like v1.0.25120905
+      - "v*.*.*" # Triggers on version tags like v1.0.25120901
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -12,26 +12,33 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get-version.outputs.version }}
+      assembly-version: ${{ steps.get-version.outputs.assembly-version }}
       tag-name: ${{ steps.get-version.outputs.tag-name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get version from tag or version.json
+      - name: Get version from tag (uses version.json - no auto-increment)
         id: get-version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            # Extract version from tag (e.g., v1.0.25120905 -> 1.0.25120905)
+            # Extract version from tag (e.g., v1.0.25120901 -> 1.0.25120901)
             VERSION="${GITHUB_REF#refs/tags/v}"
             TAG_NAME="${GITHUB_REF#refs/tags/}"
           else
-            # Read from version.json
+            # Read from version.json (for manual trigger)
             VERSION=$(cat build/version.json | grep -o '"currentVersion"[[:space:]]*:[[:space:]]*"[^"]*"' | cut -d'"' -f4)
             TAG_NAME="v$VERSION"
           fi
+
+          # Read assembly version from version.json
+          ASSEMBLY_VERSION=$(cat build/version.json | grep -o '"assemblyVersion"[[:space:]]*:[[:space:]]*"[^"]*"' | cut -d'"' -f4)
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "assembly-version=$ASSEMBLY_VERSION" >> $GITHUB_OUTPUT
           echo "tag-name=$TAG_NAME" >> $GITHUB_OUTPUT
-          echo "📦 Building version: $VERSION"
+          echo "📦 Building version: $VERSION (Assembly: $ASSEMBLY_VERSION)"
+          echo "🔒 Using LOCKED version from version.json (no auto-increment)"
 
   build-windows:
     name: Build Windows
@@ -55,9 +62,19 @@ jobs:
           playwright install chromium
         shell: pwsh
 
-      - name: Build Windows with Velopack (with bundled browsers)
+      - name: Display locked version info
+        run: |
+          Write-Host "🔒 Building Windows with LOCKED version from version.json" -ForegroundColor Green
+          Write-Host "📦 Package Version: ${{ needs.prepare-version.outputs.version }}" -ForegroundColor Cyan
+          Write-Host "🔢 Assembly Version: ${{ needs.prepare-version.outputs.assembly-version }}" -ForegroundColor Cyan
+          Write-Host "⚠️  No auto-increment on GitHub Actions build" -ForegroundColor Yellow
+        shell: pwsh
+
+      - name: Build Windows with Velopack (uses locked version from version.json)
         run: .\build\windows-velopack.ps1
         shell: pwsh
+        env:
+          GITHUB_ACTIONS: "true"
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4

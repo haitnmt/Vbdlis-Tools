@@ -1,12 +1,15 @@
 # PowerShell script to create a GitHub release using the version from local build
 # This script:
-# 1. Reads version from version.json (created by build-local.ps1)
+# 1. Reads version from version.json (created by build-local.ps1 or build-local-macos.sh)
 # 2. Creates a git tag
 # 3. Pushes tag to GitHub to trigger automated release workflow
 #
 # Workflow:
-# Step 1: .\build-local.ps1        (builds locally, increments version)
+# Step 1: .\build-local.ps1        (builds locally, increments version on Windows)
+#    OR:  ./build-local-macos.sh   (builds locally, increments version on macOS)
 # Step 2: .\create-release.ps1     (uses that version for release)
+#
+# Note: GitHub Actions will build Windows ONLY using the LOCKED version from version.json
 
 param(
     [string]$Version = "",
@@ -158,17 +161,23 @@ Write-Host ""
 Write-Host "✅ Release tag created successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "📺 GitHub Actions will now:" -ForegroundColor Cyan
-Write-Host "   1. Build Windows with version: $Version" -ForegroundColor White
-Write-Host "   2. Build macOS arm64 with version: $Version" -ForegroundColor White
-Write-Host "   3. Create GitHub Release with all artifacts" -ForegroundColor White
+Write-Host "   1. Build Windows ONLY with LOCKED version: $Version" -ForegroundColor White
+Write-Host "   2. Use version from version.json (NO auto-increment)" -ForegroundColor Yellow
+Write-Host "   3. Create GitHub Release with Windows artifacts" -ForegroundColor White
 Write-Host ""
 Write-Host "🔗 Check progress at:" -ForegroundColor Cyan
 Write-Host "   https://github.com/$RepoPath/actions" -ForegroundColor White
 Write-Host ""
-Write-Host "⏱️  Build will take approximately 10-15 minutes" -ForegroundColor Yellow
+Write-Host "⏱️  Build will take approximately 5-10 minutes" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "💡 Workflow:" -ForegroundColor Cyan
-Write-Host "   Local build (.\build-local.ps1) → Version $Version" -ForegroundColor White
-Write-Host "   GitHub release → Uses same version $Version" -ForegroundColor White
+Write-Host "   Local build (.\build-local.ps1 or ./build-local-macos.sh)" -ForegroundColor White
+Write-Host "   → Auto-increments version → Updates version.json" -ForegroundColor White
+Write-Host "   GitHub Actions (.\create-release.ps1)" -ForegroundColor White
+Write-Host "   → Uses LOCKED version from version.json → Builds Windows ONLY" -ForegroundColor White
+Write-Host ""
+Write-Host "📝 Note:" -ForegroundColor Yellow
+Write-Host "   - macOS builds should be done locally and manually uploaded" -ForegroundColor White
+Write-Host "   - Only Windows builds on GitHub Actions" -ForegroundColor White
 Write-Host ""
 Write-Host "🎉 Done!" -ForegroundColor Green

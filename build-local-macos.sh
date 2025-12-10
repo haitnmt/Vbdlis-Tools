@@ -1,6 +1,6 @@
 #!/bin/bash
-# Local macOS build script with code signing support
-# Build DMG on your Mac with optional Apple Developer ID signing
+# Local macOS build script with auto-incrementing version
+# Build DMG on your Mac with automatic version management
 
 set -e
 
@@ -8,31 +8,11 @@ CONFIGURATION="${1:-Release}"
 ARCH="${2:-arm64}"
 BUNDLE_PLAYWRIGHT="${BUNDLE_PLAYWRIGHT:-0}"   # set to 0 to skip bundling browsers (smaller DMG, requires download on first run)
 
-echo "=== Local macOS Build Script with Code Signing ==="
+echo "=== Local macOS Build Script with Auto-Increment Version ==="
 echo "Configuration: $CONFIGURATION"
 echo "Architecture: $ARCH"
+echo "Build Mode: LOCAL (auto-increment version)"
 echo "Bundle Playwright browsers: $([ "$BUNDLE_PLAYWRIGHT" = "1" ] && echo "Yes" || echo "No (will download on first run)")"
-
-# Check if Velopack is installed (optional - will fallback if not available)
-echo -e "\nChecking for Velopack CLI..."
-VPK_AVAILABLE=false
-if command -v vpk &> /dev/null; then
-    # Check if vpk can run (has correct runtime)
-    if vpk --version &> /dev/null; then
-        echo "✅ Velopack CLI found and working!"
-        VPK_AVAILABLE=true
-    else
-        echo "⚠️  Velopack CLI found but cannot run (missing .NET 9.0 runtime)"
-        echo "Will use manual DMG creation instead"
-        VPK_AVAILABLE=false
-    fi
-else
-    echo "⚠️  Velopack CLI not found"
-    echo "To install: dotnet tool install --global vpk"
-    echo "Note: Requires .NET 9.0 runtime"
-    echo "Will use manual DMG creation instead"
-    VPK_AVAILABLE=false
-fi
 
 # Paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -41,20 +21,100 @@ PROJECT_FILE="$PROJECT_PATH/Haihv.Vbdlis.Tools.Desktop.csproj"
 DIST_PATH="$SCRIPT_DIR/dist/velopack-macos-local"
 VERSION_LOG_FILE="$SCRIPT_DIR/build/version.json"
 
-# Read version from version.json
-echo -e "\nReading version..."
-if [ -f "$VERSION_LOG_FILE" ]; then
-    MAJOR_MINOR=$(grep -o '"majorMinor"[[:space:]]*:[[:space:]]*"[^"]*"' "$VERSION_LOG_FILE" | cut -d'"' -f4)
-    CURRENT_VERSION=$(grep -o '"currentVersion"[[:space:]]*:[[:space:]]*"[^"]*"' "$VERSION_LOG_FILE" | cut -d'"' -f4)
-    ASSEMBLY_VERSION=$(grep -o '"assemblyVersion"[[:space:]]*:[[:space:]]*"[^"]*"' "$VERSION_LOG_FILE" | cut -d'"' -f4)
-else
+# Read version from version.json and auto-increment
+echo -e "\nReading and calculating version..."
+if [ ! -f "$VERSION_LOG_FILE" ]; then
     echo "ERROR: version.json not found!"
-    exit 1
+    echo "Creating default version.json..."
+    mkdir -p "$SCRIPT_DIR/build"
+    cat > "$VERSION_LOG_FILE" << 'EOF'
+{
+  "majorMinor": "1.0",
+  "currentVersion": "1.0.0",
+  "assemblyVersion": "1.0.0.0",
+  "lastBuildDate": "",
+  "buildNumber": 0,
+  "platforms": {
+    "windows": {
+      "lastBuilt": "",
+      "version": ""
+    },
+    "macos": {
+      "lastBuilt": "",
+      "version": ""
+    }
+  }
+}
+EOF
 fi
 
-PACKAGE_VERSION="$CURRENT_VERSION"
-echo "Version: $ASSEMBLY_VERSION (Assembly)"
-echo "Package Version: $PACKAGE_VERSION (Velopack)"
+# Read current values
+MAJOR_MINOR=$(grep -o '"majorMinor"[[:space:]]*:[[:space:]]*"[^"]*"' "$VERSION_LOG_FILE" | cut -d'"' -f4)
+LAST_BUILD_DATE=$(grep -o '"lastBuildDate"[[:space:]]*:[[:space:]]*"[^"]*"' "$VERSION_LOG_FILE" | cut -d'"' -f4)
+BUILD_NUMBER=$(grep -o '"buildNumber"[[:space:]]*:[[:space:]]*[0-9]*' "$VERSION_LOG_FILE" | grep -o '[0-9]*$')
+
+# Calculate version - ALWAYS INCREMENT for local builds
+TODAY_STRING=$(date +"%Y-%m-%d")
+DATE_STRING=$(date +"%y%m%d")
+YEAR_MONTH=$(date +"%y%m")
+DAY_STRING=$(date +"%d")
+
+# Increment build number
+if [ "$LAST_BUILD_DATE" = "$TODAY_STRING" ]; then
+    BUILD_NUMBER=$((BUILD_NUMBER + 1))
+    echo "Same day build detected. Incrementing to build #$BUILD_NUMBER"
+else
+    BUILD_NUMBER=1
+    echo "New day detected. Starting with build #$BUILD_NUMBER"
+fi
+
+BUILD_NUM_STRING=$(printf "%02d" $BUILD_NUMBER)
+
+# Create version formats
+DAY_BUILD="$DAY_STRING$BUILD_NUM_STRING"
+ASSEMBLY_VERSION="$MAJOR_MINOR.$YEAR_MONTH.$DAY_BUILD"
+PATCH_NUMBER="$DATE_STRING$BUILD_NUM_STRING"
+PACKAGE_VERSION="$MAJOR_MINOR.$PATCH_NUMBER"
+
+echo -e "\n=== VERSION CALCULATED ==="
+echo "Assembly Version: $ASSEMBLY_VERSION (4-part for .NET)"
+echo "Package Version:  $PACKAGE_VERSION (3-part SemVer2 for Velopack)"
+echo "Build Number:     $BUILD_NUMBER"
+echo "Date:             $TODAY_STRING"
+echo ""
+
+# Update version.json
+TEMP_JSON=$(mktemp)
+cat > "$TEMP_JSON" << EOF
+{
+  "majorMinor": "$MAJOR_MINOR",
+  "currentVersion": "$PACKAGE_VERSION",
+  "assemblyVersion": "$ASSEMBLY_VERSION",
+  "lastBuildDate": "$TODAY_STRING",
+  "buildNumber": $BUILD_NUMBER,
+  "platforms": {
+    "windows": $(grep -A 3 '"windows"' "$VERSION_LOG_FILE" | tail -n 3),
+    "macos": {
+      "lastBuilt": "$(date +"%Y-%m-%dT%H:%M:%S")",
+      "version": "$PACKAGE_VERSION"
+    }
+  }
+}
+EOF
+
+mv "$TEMP_JSON" "$VERSION_LOG_FILE"
+echo "Version log updated!"
+
+# Update .csproj with assembly version
+echo -e "\nUpdating .csproj with new version..."
+if [ -f "$PROJECT_FILE" ]; then
+    sed -i.bak "s|<AssemblyVersion>.*</AssemblyVersion>|<AssemblyVersion>$ASSEMBLY_VERSION</AssemblyVersion>|" "$PROJECT_FILE"
+    sed -i.bak "s|<FileVersion>.*</FileVersion>|<FileVersion>$ASSEMBLY_VERSION</FileVersion>|" "$PROJECT_FILE"
+    sed -i.bak "s|<Version>.*</Version>|<Version>$ASSEMBLY_VERSION</Version>|" "$PROJECT_FILE"
+    sed -i.bak "s|<InformationalVersion>.*</InformationalVersion>|<InformationalVersion>$PACKAGE_VERSION</InformationalVersion>|" "$PROJECT_FILE"
+    rm -f "$PROJECT_FILE.bak"
+    echo ".csproj updated with version $ASSEMBLY_VERSION"
+fi
 
 # Clean previous builds
 echo -e "\nCleaning previous builds..."
