@@ -78,6 +78,8 @@ jobs:
             dist/velopack/*-Setup.zip
             dist/velopack/*.nupkg
             dist/velopack/RELEASES
+            dist/velopack/releases.win.json
+            dist/velopack/assets.win.json
           retention-days: 5
 
   create-release:
