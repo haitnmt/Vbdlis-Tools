@@ -239,60 +239,172 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "✅ Velopack package created!" -ForegroundColor Green
 
-# Step 3: Create ZIP archive of the installer
-Write-Host "`nStep 3: Creating ZIP archive of installer..." -ForegroundColor Yellow
+# Step 3: Create DMG from .app bundle
+Write-Host "`nStep 3: Creating DMG installer..." -ForegroundColor Yellow
 
-# Find the installer file
-$InstallerFile = Get-ChildItem -Path $OutputPath -Filter "*.pkg" -ErrorAction SilentlyContinue | Select-Object -First 1
+# Find the .app bundle created by Velopack
+$AppBundle = Get-ChildItem -Path $OutputPath -Filter "*.app" -Directory | Select-Object -First 1
 
-if (-not $InstallerFile) {
-    $InstallerFile = Get-ChildItem -Path $OutputPath -Filter "*Setup*" -ErrorAction SilentlyContinue | Select-Object -First 1
-}
-
-if ($InstallerFile) {
-    $ZipFileName = $InstallerFile.BaseName + ".zip"
-    $ZipPath = Join-Path $OutputPath $ZipFileName
+if ($AppBundle) {
+    $AppName = $AppBundle.BaseName
+    $DmgName = "VbdlisTools-$packageVersion-osx-$Arch.dmg"
+    $DmgPath = Join-Path $OutputPath $DmgName
+    $TempDmg = Join-Path $OutputPath "temp.dmg"
+    $TempDir = Join-Path $OutputPath "dmg_temp"
     
-    # Create README for installer ZIP
-    $ReadmePath = Join-Path $OutputPath "README-INSTALLER.txt"
-    @"
-VBDLIS Tools - Installer Package (macOS)
-Version: $packageVersion
-Architecture: $Arch
-==========================================
-
-CONTENTS:
-- $($InstallerFile.Name) (Velopack Installer)
-
-INSTALLATION:
-1. Extract this ZIP file
-2. Run $($InstallerFile.Name)
-3. Follow the installation wizard
-
-FEATURES:
-- Full installer with auto-update support
-- Automatic Velopack updates from GitHub Releases
-- Native Apple Silicon support
-
-SYSTEM REQUIREMENTS:
-- macOS 10.15 (Catalina) or later
-- Apple Silicon (M1/M2/M3/M4) for arm64 build
-- .NET 10.0 (included)
-
-For more info: https://github.com/haitnmt/Vbdlis-Tools
-"@ | Out-File -FilePath $ReadmePath -Encoding UTF8
+    Write-Host "Found app bundle: $($AppBundle.Name)" -ForegroundColor Cyan
     
-    # Create ZIP with installer and README
-    Write-Host "Creating ZIP: $ZipFileName..." -ForegroundColor Cyan
-    Compress-Archive -Path $InstallerFile.FullName, $ReadmePath -DestinationPath $ZipPath -Force
+    # Create temporary directory for DMG contents
+    if (Test-Path $TempDir) {
+        Remove-Item -Path $TempDir -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
     
-    # Remove the README after zipping
-    Remove-Item -Path $ReadmePath -Force
+    # Copy app bundle to temp directory
+    Copy-Item -Path $AppBundle.FullName -Destination $TempDir -Recurse
     
-    Write-Host "✅ Installer ZIP created: $ZipFileName" -ForegroundColor Green
+    # Create Applications symlink (macOS specific - requires running on macOS)
+    $ApplicationsLink = Join-Path $TempDir "Applications"
+    if (-not (Test-Path $ApplicationsLink)) {
+        # This will only work on macOS
+        & ln -s /Applications $ApplicationsLink 2>$null
+    }
+    
+    # Create comprehensive README
+    $ReadmeContent = @'
+VBDLIS Tools - macOS (Unsigned)
+================================
+
+⚠️ "App is damaged and can't be opened" ERROR?
+
+This is NORMAL for unsigned apps. Choose one of these methods:
+
+────────────────────────────────────────────────────────────
+METHOD 1: Terminal Command (RECOMMENDED - Easiest)
+────────────────────────────────────────────────────────────
+
+1. Drag VBDLIS Tools.app to Applications folder
+2. Open Terminal (Applications → Utilities → Terminal)
+3. Copy and paste this command:
+
+   xattr -cr "/Applications/VBDLIS Tools.app"
+
+4. Press Enter
+5. Now open VBDLIS Tools normally (double-click or Spotlight)
+
+✅ Done! The app will open without any issues.
+
+────────────────────────────────────────────────────────────
+METHOD 2: Right-Click (Alternative)
+────────────────────────────────────────────────────────────
+
+1. Drag VBDLIS Tools.app to Applications folder
+2. DON'T double-click the app yet
+3. Right-click (or Control+Click) on VBDLIS Tools.app
+4. Select "Open" from the menu
+5. Click "Open" in the security dialog
+6. App will open and macOS will remember this choice
+
+✅ Done! You can now open the app normally in the future.
+
+────────────────────────────────────────────────────────────
+WHY THIS HAPPENS?
+────────────────────────────────────────────────────────────
+
+• This app is NOT signed with an Apple Developer certificate ($99/year)
+• macOS Gatekeeper blocks unsigned apps downloaded from internet
+• This is a FREE open-source app, so we don't have Apple Developer signing
+• The commands above safely bypass this security check
+• Your app and data are safe - this is just a macOS security feature
+
+────────────────────────────────────────────────────────────
+FEATURES
+────────────────────────────────────────────────────────────
+
+✅ Auto-update via Velopack
+   - App checks for updates on startup
+   - Download updates from GitHub Releases
+   - No need to re-download DMG manually
+
+✅ Native Apple Silicon support
+   - Optimized for M1/M2/M3/M4 chips
+   - Fast and efficient
+
+────────────────────────────────────────────────────────────
+SYSTEM REQUIREMENTS
+────────────────────────────────────────────────────────────
+
+• macOS 10.15 (Catalina) or later
+• Apple Silicon (M1/M2/M3/M4) for arm64 build
+• .NET 10.0 runtime (included in app)
+• Internet connection (for auto-updates)
+
+────────────────────────────────────────────────────────────
+TROUBLESHOOTING
+────────────────────────────────────────────────────────────
+
+Q: Command not working?
+A: Make sure you copied the FULL command including quotes
+
+Q: Still see error after xattr command?
+A: Try Method 2 (right-click → Open)
+
+Q: App crashes on startup?
+A: Check logs at ~/Library/Logs/VbdlisTools/
+
+────────────────────────────────────────────────────────────
+MORE INFORMATION
+────────────────────────────────────────────────────────────
+
+GitHub: https://github.com/haitnmt/Vbdlis-Tools
+Issues: https://github.com/haitnmt/Vbdlis-Tools/issues
+
+────────────────────────────────────────────────────────────
+
+Enjoy using VBDLIS Tools! 🎉
+'@
+    
+    $ReadmeContent | Out-File -FilePath (Join-Path $TempDir "README.txt") -Encoding UTF8
+    
+    # Create temporary DMG (requires hdiutil - macOS only)
+    Write-Host "Creating temporary DMG..." -ForegroundColor Cyan
+    $createResult = & hdiutil create -volname "VBDLIS Tools" -srcfolder $TempDir -ov -format UDRW $TempDmg 2>&1
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Failed to create DMG, falling back to ZIP..."
+        # Fallback: Create ZIP of app bundle
+        $ZipName = "VbdlisTools-$packageVersion-osx-$Arch.zip"
+        $ZipPath = Join-Path $OutputPath $ZipName
+        Compress-Archive -Path $AppBundle.FullName -DestinationPath $ZipPath -Force
+        Write-Host "✅ ZIP archive created: $ZipName" -ForegroundColor Green
+    }
+    else {
+        # Convert to compressed DMG
+        Write-Host "Compressing DMG..." -ForegroundColor Cyan
+        & hdiutil convert $TempDmg -format UDZO -o $DmgPath 2>&1 | Out-Null
+        if (Test-Path $TempDmg) {
+            Remove-Item -Path $TempDmg -Force
+        }
+        
+        Write-Host "✅ DMG created: $DmgName" -ForegroundColor Green
+    }
+    
+    # Clean up temp directory
+    if (Test-Path $TempDir) {
+        Remove-Item -Path $TempDir -Recurse -Force
+    }
 }
 else {
-    Write-Warning "Installer file not found, skipping ZIP creation"
+    Write-Warning "App bundle not found in Velopack output"
+    Write-Host "Available files:" -ForegroundColor Yellow
+    Get-ChildItem -Path $OutputPath | Format-Table Name, Length
+}
+
+# Step 4: Create portable ZIP
+Write-Host "`nStep 4: Creating portable ZIP..." -ForegroundColor Yellow
+$PortableZip = Get-ChildItem -Path $OutputPath -Filter "*-Portable.zip" | Select-Object -First 1
+if ($PortableZip) {
+    Write-Host "✅ Portable ZIP already created by Velopack: $($PortableZip.Name)" -ForegroundColor Green
 }
 
 # List generated files
@@ -304,7 +416,14 @@ Get-ChildItem -Path $OutputPath -File | ForEach-Object {
 
 Write-Host "`n✅ LOCAL BUILD SUCCESSFUL!" -ForegroundColor Green
 Write-Host "`nVersion built: $packageVersion" -ForegroundColor Cyan
+Write-Host "Architecture: $Arch" -ForegroundColor Cyan
 Write-Host "Output directory: $OutputPath" -ForegroundColor Cyan
+Write-Host "`n📦 DISTRIBUTION FILES:" -ForegroundColor Yellow
+Write-Host "   DMG:      VbdlisTools-$packageVersion-osx-$Arch.dmg" -ForegroundColor White
+Write-Host "   Portable: Haihv.Vbdlis.Tools.Desktop-osx-Portable.zip" -ForegroundColor White
+Write-Host "`n🚀 RECOMMENDED FOR USERS:" -ForegroundColor Yellow
+Write-Host "   Share the DMG file - easiest to install!" -ForegroundColor White
+Write-Host "   User just needs to run: xattr -cr `"/Applications/VBDLIS Tools.app`"" -ForegroundColor White
 Write-Host "`n📝 NOTE: This is a LOCAL build for testing." -ForegroundColor Yellow
 Write-Host "   To create a RELEASE, use: ./create-release.ps1" -ForegroundColor Yellow
 Write-Host ""
