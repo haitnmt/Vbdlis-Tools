@@ -154,17 +154,16 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             {
                 if (File.Exists(psScript))
                 {
-                    onStatusChange?.Invoke("Đang cài đặt bằng PowerShell...");
-
-                    // Try pwsh (PowerShell 7+) first, then fallback to powershell (Windows PowerShell 5.1)
-                    if (await RunProcessAsync("pwsh", $"-NoProfile -NonInteractive -File \"{psScript}\" install chromium", appDir, onStatusChange))
+                    // Try powershell.exe (Windows PowerShell 5.1 - built-in) first, then fallback to pwsh (PowerShell 7+)
+                    onStatusChange?.Invoke("Đang cài đặt bằng Windows PowerShell...");
+                    if (await RunProcessAsync("powershell", $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"{psScript}\" install chromium", appDir, onStatusChange))
                     {
                         return true;
                     }
 
-                    _logger.Information("pwsh not found, trying powershell.exe...");
-                    onStatusChange?.Invoke("Đang cài đặt bằng Windows PowerShell...");
-                    return await RunProcessAsync("powershell", $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"{psScript}\" install chromium", appDir, onStatusChange);
+                    _logger.Information("powershell.exe failed or not found, trying pwsh...");
+                    onStatusChange?.Invoke("Đang cài đặt bằng PowerShell Core...");
+                    return await RunProcessAsync("pwsh", $"-NoProfile -NonInteractive -File \"{psScript}\" install chromium", appDir, onStatusChange);
                 }
                 return false;
             }
