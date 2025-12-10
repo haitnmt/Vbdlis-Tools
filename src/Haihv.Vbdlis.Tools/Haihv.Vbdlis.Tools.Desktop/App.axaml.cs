@@ -221,35 +221,28 @@ namespace Haihv.Vbdlis.Tools.Desktop
         /// </summary>
         private async Task CheckForUpdatesAsync()
         {
-            Log.Information("╔════════════════════════════════════════════════════════════════════╗");
-            Log.Information("║          KIỂM TRA CẬP NHẬT TỰ ĐỘNG (AUTO-UPDATE CHECK)            ║");
-            Log.Information("╚════════════════════════════════════════════════════════════════════╝");
+            Log.Information("[AUTO-UPDATE] Bắt đầu kiểm tra cập nhật tự động");
 
             try
             {
                 if (_serviceProvider == null)
                 {
-                    Log.Warning("ServiceProvider chưa khởi tạo. Bỏ qua kiểm tra cập nhật.");
+                    Log.Warning("[AUTO-UPDATE] ServiceProvider chưa khởi tạo");
                     return;
                 }
 
                 var updateService = _serviceProvider.GetService<IUpdateService>();
                 if (updateService == null)
                 {
-                    Log.Warning("UpdateService không được đăng ký. Bỏ qua kiểm tra cập nhật.");
+                    Log.Warning("[AUTO-UPDATE] UpdateService không được đăng ký");
                     return;
                 }
 
-                Log.Information("Đang gọi UpdateService.CheckForUpdatesAsync()...");
                 var updateInfo = await updateService.CheckForUpdatesAsync();
 
                 if (updateInfo != null)
                 {
-                    Log.Information("╔════════════════════════════════════════════════════════════════════╗");
-                    Log.Information("║                   CÓ PHIÊN BẢN MỚI KHẢ DỤNG!                      ║");
-                    Log.Information("╚════════════════════════════════════════════════════════════════════╝");
-                    Log.Information("Phiên bản mới: {Version}", updateInfo.Version);
-                    Log.Information("Đang hiển thị dialog cập nhật cho người dùng...");
+                    Log.Information("[AUTO-UPDATE] Hiển thị dialog cập nhật: {Version}", updateInfo.Version);
 
                     // Show update notification on UI thread
                     await Dispatcher.UIThread.InvokeAsync(async () =>
@@ -258,43 +251,35 @@ namespace Haihv.Vbdlis.Tools.Desktop
 
                         if (result)
                         {
-                            Log.Information("✅ Người dùng chọn CẬP NHẬT NGAY");
-                            Log.Information("Đang bắt đầu quá trình tải và cài đặt...");
+                            Log.Information("[AUTO-UPDATE] User chọn: CẬP NHẬT NGAY");
 
                             var success = await updateService.DownloadAndInstallUpdateAsync(updateInfo, progress =>
                             {
-                                Log.Debug("Tiến trình tải: {Progress}%", progress);
+                                Log.Debug("[AUTO-UPDATE] Progress: {Progress}%", progress);
                             });
 
                             if (success)
                             {
-                                Log.Information("✅ Cập nhật thành công! Ứng dụng sẽ khởi động lại...");
+                                Log.Information("[AUTO-UPDATE] Thành công - App sẽ restart");
                             }
                             else
                             {
-                                Log.Error("❌ Cập nhật thất bại! Vui lòng thử lại sau.");
+                                Log.Error("[AUTO-UPDATE] Thất bại - Vui lòng thử lại");
                             }
                         }
                         else
                         {
-                            Log.Information("⏭️  Người dùng chọn ĐỂ SAU. Tiếp tục khởi động ứng dụng...");
+                            Log.Information("[AUTO-UPDATE] User chọn: ĐỂ SAU");
                         }
                     });
-                }
-                else
-                {
-                    Log.Information("✅ Đã sử dụng phiên bản mới nhất. Không có cập nhật.");
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "❌ LỖI khi kiểm tra cập nhật");
-                Log.Error("Chi tiết: {Message}", ex.Message);
+                Log.Error(ex, "[AUTO-UPDATE] Lỗi: {Message}", ex.Message);
             }
 
-            Log.Information("╔════════════════════════════════════════════════════════════════════╗");
-            Log.Information("║            KẾT THÚC KIỂM TRA CẬP NHẬT TỰ ĐỘNG                     ║");
-            Log.Information("╚════════════════════════════════════════════════════════════════════╝");
+            Log.Information("[AUTO-UPDATE] Kết thúc kiểm tra");
         }
 
         /// <summary>

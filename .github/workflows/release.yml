@@ -122,9 +122,9 @@ jobs:
 
           ### ⚠️ Important Notes
 
-          - **Playwright Browsers**: ✅ Đã được bundle sẵn trong installer (~200MB)
-            - Không cần download thêm khi chạy lần đầu
-            - Hoạt động offline ngay sau khi cài đặt
+          - **Playwright Browsers**: 
+            - Lần chạy đầu tiên, ứng dụng sẽ tải các trình duyệt Playwright cần thiết (khoảng 200MB)
+            - Vui lòng đảm bảo kết nối internet ổn định trong lần chạy đầu tiên
           - **Auto-Update**: Ứng dụng tự động kiểm tra và cập nhật phiên bản mới
           - **Minimum Requirements**:
             - Windows: Windows 10 64-bit or later

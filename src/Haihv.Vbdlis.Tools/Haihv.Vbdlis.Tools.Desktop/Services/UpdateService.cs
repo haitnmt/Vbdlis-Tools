@@ -18,6 +18,9 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         private const string GitHubRepoOwner = "haitnmt";
         private const string GitHubRepoName = "Vbdlis-Tools";
 
+        // Cache the Velopack UpdateInfo to avoid re-checking
+        private Velopack.UpdateInfo? _cachedVelopackUpdateInfo;
+
         public string CurrentVersion { get; }
 
         public UpdateService()
@@ -63,51 +66,43 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         /// </summary>
         public async Task<UpdateInfo?> CheckForUpdatesAsync()
         {
-            _logger.Information("========== BẮT ĐẦU KIỂM TRA CẬP NHẬT ==========");
-            _logger.Information("Phiên bản hiện tại: {CurrentVersion}", CurrentVersion);
+            _logger.Information("[UPDATE] Kiểm tra cập nhật - Phiên bản hiện tại: {CurrentVersion}", CurrentVersion);
 
             if (_updateManager == null)
             {
-                _logger.Warning("UpdateManager chưa được khởi tạo. Không thể kiểm tra cập nhật.");
-                _logger.Information("========== KẾT THÚC KIỂM TRA CẬP NHẬT (FAILED) ==========");
+                _logger.Warning("[UPDATE] UpdateManager chưa khởi tạo");
                 return null;
             }
 
             try
             {
-                // Log installation status for debugging
                 var isInstalled = _updateManager.IsInstalled;
-                _logger.Information("Trạng thái cài đặt Velopack: IsInstalled={IsInstalled}", isInstalled);
+                _logger.Information("[UPDATE] IsInstalled = {IsInstalled}", isInstalled);
 
                 if (!isInstalled)
                 {
-                    _logger.Warning("Ứng dụng đang chạy ở chế độ portable/development.");
-                    _logger.Warning("Tính năng tự động cập nhật chỉ hoạt động khi cài đặt qua Velopack installer.");
-                    _logger.Information("========== KẾT THÚC KIỂM TRA CẬP NHẬT (PORTABLE MODE) ==========");
+                    _logger.Warning("[UPDATE] App đang chạy portable mode - Auto-update chỉ hoạt động khi cài qua installer");
                     return null;
                 }
 
-                _logger.Information("Đang kết nối tới GitHub để kiểm tra phiên bản mới...");
-                _logger.Information("GitHub repo: https://github.com/{Owner}/{Repo}", GitHubRepoOwner, GitHubRepoName);
+                _logger.Information("[UPDATE] Kết nối GitHub: https://github.com/{Owner}/{Repo}", GitHubRepoOwner, GitHubRepoName);
 
                 var updateInfo = await _updateManager.CheckForUpdatesAsync();
 
                 if (updateInfo == null)
                 {
-                    _logger.Information("Không có phiên bản mới. Đã sử dụng phiên bản mới nhất: {Version}", CurrentVersion);
-                    _logger.Information("========== KẾT THÚC KIỂM TRA CẬP NHẬT (NO UPDATE) ==========");
+                    _logger.Information("[UPDATE] Đã sử dụng phiên bản mới nhất");
                     return null;
                 }
 
                 var newVersion = updateInfo.TargetFullRelease.Version.ToString();
+                var sizeMB = updateInfo.TargetFullRelease.Size / 1024.0 / 1024.0;
 
-                _logger.Information("🎉 TÌM THẤY PHIÊN BẢN MỚI!");
-                _logger.Information("   Phiên bản hiện tại: {CurrentVersion}", CurrentVersion);
-                _logger.Information("   Phiên bản mới: {NewVersion}", newVersion);
-                _logger.Information("   Kích thước file: {Size:N0} bytes (~{SizeMB:N1} MB)",
-                    updateInfo.TargetFullRelease.Size,
-                    updateInfo.TargetFullRelease.Size / 1024.0 / 1024.0);
-                _logger.Information("========== KẾT THÚC KIỂM TRA CẬP NHẬT (UPDATE FOUND) ==========");
+                _logger.Information("[UPDATE] Tìm thấy bản cập nhật: {CurrentVersion} → {NewVersion} (~{SizeMB:N1} MB)",
+                    CurrentVersion, newVersion, sizeMB);
+
+                // Cache the Velopack UpdateInfo for DownloadAndInstallUpdateAsync
+                _cachedVelopackUpdateInfo = updateInfo;
 
                 return new UpdateInfo
                 {
@@ -121,10 +116,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "LỖI khi kiểm tra cập nhật");
-                _logger.Error("Chi tiết lỗi: {Message}", ex.Message);
-                _logger.Error("Stack trace: {StackTrace}", ex.StackTrace);
-                _logger.Information("========== KẾT THÚC KIỂM TRA CẬP NHẬT (ERROR) ==========");
+                _logger.Error(ex, "[UPDATE] Lỗi khi kiểm tra cập nhật: {Message}", ex.Message);
                 return null;
             }
         }
@@ -135,58 +127,58 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         /// </summary>
         public async Task<bool> DownloadAndInstallUpdateAsync(UpdateInfo updateInfo, Action<int>? progress = null)
         {
-            _logger.Information("========== BẮT ĐẦU TẢI VÀ CÀI ĐẶT CẬP NHẬT ==========");
-            _logger.Information("Phiên bản đích: {Version}", updateInfo.Version);
+            _logger.Information("[UPDATE] Bắt đầu tải cập nhật: {Version}", updateInfo.Version);
 
             if (_updateManager == null)
             {
-                _logger.Warning("UpdateManager chưa được khởi tạo. Không thể tải cập nhật.");
-                _logger.Information("========== KẾT THÚC TẢI CẬP NHẬT (FAILED) ==========");
+                _logger.Warning("[UPDATE] UpdateManager chưa khởi tạo");
                 return false;
             }
 
             try
             {
-                _logger.Information("Đang kiểm tra lại thông tin cập nhật từ Velopack...");
+                Velopack.UpdateInfo? velopackUpdateInfo;
 
-                // Check for updates again to get the UpdateInfo object from Velopack
-                var velopackUpdateInfo = await _updateManager.CheckForUpdatesAsync();
-
-                if (velopackUpdateInfo == null)
+                // Use cached UpdateInfo if available, otherwise check again
+                if (_cachedVelopackUpdateInfo != null)
                 {
-                    _logger.Warning("Không tìm thấy bản cập nhật khi kiểm tra lại");
-                    _logger.Information("========== KẾT THÚC TẢI CẬP NHẬT (NO UPDATE) ==========");
-                    return false;
+                    _logger.Information("[UPDATE] Sử dụng thông tin cached");
+                    velopackUpdateInfo = _cachedVelopackUpdateInfo;
+                    _cachedVelopackUpdateInfo = null; // Clear cache after use
+                }
+                else
+                {
+                    _logger.Information("[UPDATE] Kiểm tra lại từ Velopack...");
+                    velopackUpdateInfo = await _updateManager.CheckForUpdatesAsync();
+
+                    if (velopackUpdateInfo == null)
+                    {
+                        _logger.Warning("[UPDATE] Không tìm thấy bản cập nhật");
+                        return false;
+                    }
                 }
 
-                _logger.Information("Xác nhận có bản cập nhật. Bắt đầu tải xuống...");
-                _logger.Information("   Package: {Package}", velopackUpdateInfo.TargetFullRelease.PackageId);
-                _logger.Information("   Kích thước: {Size:N0} bytes", velopackUpdateInfo.TargetFullRelease.Size);
+                var sizeMB = velopackUpdateInfo.TargetFullRelease.Size / 1024.0 / 1024.0;
+                _logger.Information("[UPDATE] Tải xuống: {Package} (~{SizeMB:N1} MB)",
+                    velopackUpdateInfo.TargetFullRelease.PackageId, sizeMB);
 
                 // Download updates with progress callback
                 await _updateManager.DownloadUpdatesAsync(velopackUpdateInfo, (percent) =>
                 {
-                    _logger.Information("Tiến trình tải: {Percent}%", percent);
+                    _logger.Debug("[UPDATE] Tiến trình: {Percent}%", percent);
                     progress?.Invoke(percent);
                 });
 
-                _logger.Information("✅ Tải xuống hoàn tất!");
-                _logger.Information("Đang áp dụng bản cập nhật và khởi động lại ứng dụng...");
+                _logger.Information("[UPDATE] Tải hoàn tất - Đang cài đặt và khởi động lại...");
 
                 // Apply updates and restart (this will terminate the current process)
                 _updateManager.ApplyUpdatesAndRestart(velopackUpdateInfo);
 
-                _logger.Information("========== ỨNG DỤNG SẼ KHỞI ĐỘNG LẠI ==========");
-
-                // This line won't be reached as the app will restart
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "LỖI khi tải/cài đặt cập nhật");
-                _logger.Error("Chi tiết lỗi: {Message}", ex.Message);
-                _logger.Error("Stack trace: {StackTrace}", ex.StackTrace);
-                _logger.Information("========== KẾT THÚC TẢI CẬP NHẬT (ERROR) ==========");
+                _logger.Error(ex, "[UPDATE] Lỗi khi tải/cài đặt: {Message}", ex.Message);
                 return false;
             }
         }
