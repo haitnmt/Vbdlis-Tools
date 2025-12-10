@@ -219,7 +219,7 @@ $IconPath = Get-ChildItem -Path $ProjectAssetsPath -Filter "*.ico" -ErrorAction 
 
 $VpkArgs = @(
     "pack"
-    "--packId", "VbdlisTools"
+    "--packId", "Haihv.Vbdlis.Tools.Desktop"
     "--packVersion", $Version
     "--packDir", $PublishPath
     "--mainExe", "Haihv.Vbdlis.Tools.Desktop.exe"
