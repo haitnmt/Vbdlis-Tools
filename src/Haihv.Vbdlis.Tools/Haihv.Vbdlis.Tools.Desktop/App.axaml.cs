@@ -55,14 +55,24 @@ namespace Haihv.Vbdlis.Tools.Desktop
         }
 
         /// <summary>
-        /// Initializes the main window after ensuring Playwright browsers are installed.
+        /// Initializes the main window after checking for updates and ensuring Playwright browsers are installed.
         /// This ensures the application is fully ready before showing the UI.
         /// </summary>
         private async Task InitializeMainWindowAsync(IClassicDesktopStyleApplicationLifetime desktop)
         {
             Log.Information("Starting main window initialization...");
 
-            // First, ensure Playwright browsers are installed
+            // First, check for updates BEFORE starting the app
+            await CheckForUpdatesAsync();
+
+            // Check if app is shutting down after update check (user may have chosen to update)
+            if (_isShuttingDown)
+            {
+                Log.Information("Application is shutting down for update, skipping main window initialization");
+                return;
+            }
+
+            // Then, ensure Playwright browsers are installed
             await EnsurePlaywrightBrowsersAsync();
 
             Log.Information("Playwright check completed, preparing to show main window...");
@@ -113,9 +123,6 @@ namespace Haihv.Vbdlis.Tools.Desktop
                 Log.Error(ex, "Failed to initialize main window");
                 throw;
             }
-
-            // Check for updates after MainWindow is shown (non-blocking)
-            _ = CheckForUpdatesAsync();
         }
 
         private static void ConfigureServices(ServiceCollection services)
@@ -210,15 +217,12 @@ namespace Haihv.Vbdlis.Tools.Desktop
         }
 
         /// <summary>
-        /// Checks for application updates in the background
+        /// Checks for application updates before app starts
         /// </summary>
         private async Task CheckForUpdatesAsync()
         {
             try
             {
-                // Wait a bit after app startup before checking
-                await Task.Delay(TimeSpan.FromSeconds(5));
-
                 if (_serviceProvider == null)
                     return;
 
@@ -226,7 +230,7 @@ namespace Haihv.Vbdlis.Tools.Desktop
                 if (updateService == null)
                     return;
 
-                Log.Information("Checking for updates...");
+                Log.Information("Checking for updates before app startup...");
                 var updateInfo = await updateService.CheckForUpdatesAsync();
 
                 if (updateInfo != null)
@@ -267,7 +271,7 @@ namespace Haihv.Vbdlis.Tools.Desktop
         /// </summary>
         private async Task<bool> ShowUpdateDialogAsync(UpdateInfo updateInfo)
         {
-            // Simple message box for now - can be replaced with custom UI
+            // Simple message box - works before or after MainWindow exists
             try
             {
                 var messageBox = new Window
@@ -276,7 +280,7 @@ namespace Haihv.Vbdlis.Tools.Desktop
                     Width = 450,
                     Height = 250,
                     CanResize = false,
-                    WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner
+                    WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterScreen
                 };
 
                 var stackPanel = new StackPanel
@@ -345,12 +349,12 @@ namespace Haihv.Vbdlis.Tools.Desktop
 
                 messageBox.Content = stackPanel;
 
-                if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && desktop.MainWindow != null)
-                {
-                    await messageBox.ShowDialog(desktop.MainWindow);
-                }
+                // Show as standalone window and wait for it to close
+                var tcs = new TaskCompletionSource<bool>();
+                messageBox.Closed += (s, e) => tcs.SetResult(result);
+                messageBox.Show();
 
-                return result;
+                return await tcs.Task;
             }
             catch
             {
