@@ -30,10 +30,16 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
         private LoginViewModel _loginViewModel;
 
         [ObservableProperty]
-        private string _currentView = "Home";
+        private ViewModelBase? _currentViewModel;
 
         [ObservableProperty]
         private CungCapThongTinViewModel? _cungCapThongTinViewModel;
+
+        [ObservableProperty]
+        private DemoViewModel? _demoViewModel;
+
+        [ObservableProperty]
+        private HomeViewModel? _homeViewModel;
 
         public static string AppVersion
         {
@@ -66,6 +72,10 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
 
             // Start with not logged in
             IsLoggedIn = false;
+
+            // Create Home ViewModel
+            _homeViewModel = new HomeViewModel(this);
+            _currentViewModel = _homeViewModel;
 
             // Try to load saved credentials
             _ = LoadSavedCredentialsAsync();
@@ -130,14 +140,33 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
                 CungCapThongTinViewModel = new CungCapThongTinViewModel(searchService);
             }
 
-            CurrentView = "CungCapThongTin";
+            CurrentViewModel = CungCapThongTinViewModel;
         }
 
         [RelayCommand]
         private void ShowHome()
         {
-            CurrentView = "Home";
+            // Update HomeViewModel data before switching
+            if (HomeViewModel != null)
+            {
+                HomeViewModel.LoggedInUsername = LoggedInUsername;
+                HomeViewModel.LoggedInServer = LoggedInServer;
+            }
+
+            CurrentViewModel = HomeViewModel;
         }
+
+        // [RelayCommand]
+        // private void ShowDemo()
+        // {
+        //     // Create ViewModel if not already created
+        //     if (DemoViewModel == null)
+        //     {
+        //         DemoViewModel = new DemoViewModel();
+        //     }
+
+        //     CurrentViewModel = DemoViewModel;
+        // }
 
         [RelayCommand]
         private async Task LogoutAsync()

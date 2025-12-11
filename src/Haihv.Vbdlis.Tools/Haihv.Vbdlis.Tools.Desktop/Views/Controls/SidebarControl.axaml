@@ -53,6 +53,16 @@
                     Content="Cung cấp thông tin"
                     ToolTip.Tip="Cung cấp thông tin giấy chứng nhận" />
 
+                <!-- <Button
+                    Padding="15,10"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Command="{Binding ShowDemoCommand}"
+                    Content="Demo View"
+                    ToolTip.Tip="Xem demo view với TransitioningContentControl" />-->
+
                 <Separator Margin="0,0" />
 
                 <Button

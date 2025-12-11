@@ -1,0 +1,39 @@
+<UserControl
+    x:Class="Haihv.Vbdlis.Tools.Desktop.Views.HomeView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:Haihv.Vbdlis.Tools.Desktop.ViewModels"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    x:DataType="vm:HomeViewModel"
+    mc:Ignorable="d">
+
+    <StackPanel
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center"
+        Spacing="10">
+        <TextBlock
+            HorizontalAlignment="Center"
+            FontSize="32"
+            FontWeight="Bold"
+            Text="Trang chủ" />
+        <TextBlock HorizontalAlignment="Center">
+            <Run Text="Xin chào, " />
+            <Run FontWeight="Bold" Text="{Binding LoggedInUsername}" />
+        </TextBlock>
+        <TextBlock
+            HorizontalAlignment="Center"
+            Foreground="Gray"
+            Text="{Binding LoggedInServer}" />
+
+        <!--  Logout Button  -->
+        <Button
+            Margin="0,20,0,0"
+            HorizontalAlignment="Center"
+            Command="{Binding LogoutCommand}"
+            Content="Đăng xuất" />
+    </StackPanel>
+
+</UserControl>

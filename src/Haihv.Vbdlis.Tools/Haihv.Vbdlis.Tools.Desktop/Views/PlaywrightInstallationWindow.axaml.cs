@@ -22,9 +22,6 @@ namespace Haihv.Vbdlis.Tools.Desktop.Views
         public PlaywrightInstallationWindow()
         {
             InitializeComponent();
-#if DEBUG
-            this.AttachDevTools();
-#endif
             // Subscribe to ViewModel events when DataContext changes
             DataContextChanged += OnDataContextChanged;
         }

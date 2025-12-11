@@ -42,42 +42,8 @@
                 <sidebarControls:SidebarControl x:Name="SidebarControl" />
             </SplitView.Pane>
 
-            <!--  Main Content Area  -->
-            <Grid>
-                <!--  Home View  -->
-                <StackPanel
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    IsVisible="{Binding CurrentView, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=Home}"
-                    Spacing="10">
-                    <TextBlock
-                        HorizontalAlignment="Center"
-                        FontSize="32"
-                        FontWeight="Bold"
-                        Text="Trang chủ" />
-                    <TextBlock HorizontalAlignment="Center">
-                        <Run Text="Xin chào, " />
-                        <Run FontWeight="Bold" Text="{Binding LoggedInUsername}" />
-                    </TextBlock>
-                    <TextBlock
-                        HorizontalAlignment="Center"
-                        Foreground="Gray"
-                        Text="{Binding LoggedInServer}" />
-
-                    <!--  Logout Button for testing  -->
-                    <Button
-                        Margin="0,20,0,0"
-                        HorizontalAlignment="Center"
-                        Command="{Binding LogoutCommand}"
-                        Content="Đăng xuất" />
-                </StackPanel>
-
-                <!--  Cung Cấp Thông Tin View  -->
-                <views:CungCapThongTinView
-                    x:Name="CungCapThongTinView"
-                    DataContext="{Binding CungCapThongTinViewModel}"
-                    IsVisible="{Binding $parent[Grid].DataContext.CurrentView, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=CungCapThongTin}" />
-            </Grid>
+            <!--  Main Content Area with Transitions - Uses ViewLocator for automatic View resolution  -->
+            <TransitioningContentControl Content="{Binding CurrentViewModel}" />
         </SplitView>
     </Panel>
 
