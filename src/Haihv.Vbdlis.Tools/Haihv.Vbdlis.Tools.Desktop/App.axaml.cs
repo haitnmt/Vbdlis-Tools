@@ -19,17 +19,14 @@ namespace Haihv.Vbdlis.Tools.Desktop
     {
         private ServiceProvider? _serviceProvider;
         private bool _isShuttingDown = false;
+        private SplashWindow? _splashWindow;
+        private SplashWindowViewModel? _splashViewModel;
 
         public static IServiceProvider? Services { get; private set; }
 
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
-            // Test giao diện Update Dialog
-            //_ = ShowUpdateDialogAsync(new UpdateInfo { Version = "2.0.0", ReleaseNotes = " - New features\n - Bug fixes\n - Improvements", FileSize = 15 * 1024 * 1024 });
-            // Test giao diện trạng thái Update
-            // var (window, progressBar, statusText) = CreateUpdateProgressWindow();
-            // window.Show();
         }
 
         public override void OnFrameworkInitializationCompleted()
@@ -49,6 +46,14 @@ namespace Haihv.Vbdlis.Tools.Desktop
                 // Set ShutdownMode to OnExplicitShutdown to prevent auto-shutdown when windows close
                 desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
 
+                // Show splash screen
+                _splashViewModel = new SplashWindowViewModel();
+                _splashWindow = new SplashWindow
+                {
+                    DataContext = _splashViewModel
+                };
+                _splashWindow.Show();
+
                 // Initialize MainWindow asynchronously after ensuring Playwright is ready
                 _ = InitializeMainWindowAsync(desktop);
 
@@ -67,31 +72,60 @@ namespace Haihv.Vbdlis.Tools.Desktop
         {
             Log.Information("Starting main window initialization...");
 
-            // First, check for updates BEFORE starting the app
-            await CheckForUpdatesAsync();
-
-            // Check if app is shutting down after update check (user may have chosen to update)
-            if (_isShuttingDown)
-            {
-                Log.Information("Application is shutting down for update, skipping main window initialization");
-                return;
-            }
-
-            // Then, ensure Playwright browsers are installed
-            await EnsurePlaywrightBrowsersAsync();
-
-            Log.Information("Playwright check completed, preparing to show main window...");
-
-            // Check if app is shutting down before proceeding
-            if (_isShuttingDown)
-            {
-                Log.Information("Application is shutting down, skipping main window initialization");
-                return;
-            }
-
-            // Then create and show the main window on UI thread
             try
             {
+                // Update splash screen: Checking for updates
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    _splashViewModel?.SetCheckingUpdates();
+                });
+
+                // First, check for updates BEFORE starting the app
+                await CheckForUpdatesAsync();
+
+                // Check if app is shutting down after update check (user may have chosen to update)
+                if (_isShuttingDown)
+                {
+                    Log.Information("Application is shutting down for update, skipping main window initialization");
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        _splashWindow?.Close();
+                    });
+                    return;
+                }
+
+                // Update splash screen: Checking Playwright
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    _splashViewModel?.SetCheckingPlaywright();
+                });
+
+                // Then, ensure Playwright browsers are installed
+                await EnsurePlaywrightBrowsersAsync();
+
+                Log.Information("Playwright check completed, preparing to show main window...");
+
+                // Check if app is shutting down before proceeding
+                if (_isShuttingDown)
+                {
+                    Log.Information("Application is shutting down, skipping main window initialization");
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        _splashWindow?.Close();
+                    });
+                    return;
+                }
+
+                // Update splash screen: Initializing main window
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    _splashViewModel?.SetInitializingMainWindow();
+                });
+
+                // Small delay to show the status
+                await Task.Delay(300);
+
+                // Then create and show the main window on UI thread
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (_serviceProvider == null || _isShuttingDown)
@@ -114,8 +148,14 @@ namespace Haihv.Vbdlis.Tools.Desktop
                         WindowStartupLocation = WindowStartupLocation.CenterScreen
                     };
 
+                    // Update splash screen: Complete
+                    _splashViewModel?.SetComplete();
+
                     // Show the main window
                     desktop.MainWindow.Show();
+
+                    // Close splash window
+                    _splashWindow?.Close();
 
                     // Now that MainWindow is shown, change shutdown mode to close when main window closes
                     desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
@@ -126,6 +166,13 @@ namespace Haihv.Vbdlis.Tools.Desktop
             catch (Exception ex)
             {
                 Log.Error(ex, "Failed to initialize main window");
+
+                // Close splash window on error
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    _splashWindow?.Close();
+                });
+
                 throw;
             }
         }
@@ -177,6 +224,12 @@ namespace Haihv.Vbdlis.Tools.Desktop
                 Log.Information("Playwright browsers are ready.");
                 return;
             }
+
+            // Update splash screen for installing Playwright
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                _splashViewModel?.UpdateStatus("Cần cài đặt Playwright browsers...", 65);
+            });
 
             // Show installation window with progress/status
             var installViewModel = new PlaywrightInstallationViewModel
@@ -377,6 +430,7 @@ namespace Haihv.Vbdlis.Tools.Desktop
                     BorderBrush = Avalonia.Media.Brushes.LightGray,
                     Background = Avalonia.Media.Brushes.White,
                     CornerRadius = new CornerRadius(8),
+                    Margin = new Thickness(0, 12, 0, 12),
                     Padding = new Thickness(14)
                 };
 
@@ -409,7 +463,6 @@ namespace Haihv.Vbdlis.Tools.Desktop
                     HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom,
                     ColumnSpacing = 12,
-                    Margin = new Thickness(0, 16, 0, 0)
                 };
 
                 bool result = false;
