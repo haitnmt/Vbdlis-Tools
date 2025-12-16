@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Controls;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -102,7 +104,7 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
     /// Xuất Excel dạng Compact (KetQuaTimKiemModel)
     /// </summary>
     [RelayCommand]
-    private async Task ExportExcelCompactAsync()
+    private async Task ExportExcelCompactAsync(TopLevel? topLevel)
     {
         if (KetQuaTimKiemList.Count == 0)
         {
@@ -110,13 +112,41 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
             return;
         }
 
+        if (topLevel == null)
+        {
+            StatusMessage = "Không thể mở hộp thoại lưu file";
+            return;
+        }
+
         try
         {
+            // Hiển thị Save File Dialog
+            var defaultFileName = $"KetQuaTimKiem_Compact_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+            var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Xuất Excel - Dạng Compact",
+                SuggestedFileName = defaultFileName,
+                DefaultExtension = "xlsx",
+                FileTypeChoices = new[]
+                {
+                    new FilePickerFileType("Excel Files")
+                    {
+                        Patterns = new[] { "*.xlsx" }
+                    }
+                }
+            });
+
+            if (file == null)
+            {
+                StatusMessage = "Đã hủy xuất file";
+                return;
+            }
+
             IsExporting = true;
             StatusMessage = "Đang xuất Excel...";
 
-            var fileName = $"KetQuaTimKiem_Compact_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-            var filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), fileName);
+            var filePath = file.Path.LocalPath;
 
             await Task.Run(() =>
             {
@@ -187,7 +217,7 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
                 package.SaveAs(fileInfo);
             });
 
-            StatusMessage = $"Đã xuất file: {fileName}";
+            StatusMessage = $"Đã xuất file: {Path.GetFileName(filePath)}";
         }
         catch (Exception ex)
         {
@@ -203,11 +233,17 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
     /// Xuất Excel đầy đủ (tất cả thuộc tính)
     /// </summary>
     [RelayCommand]
-    private async Task ExportExcelFullAsync()
+    private async Task ExportExcelFullAsync(TopLevel? topLevel)
     {
         if (KetQuaTimKiemList.Count == 0)
         {
             StatusMessage = "Không có dữ liệu để xuất";
+            return;
+        }
+
+        if (topLevel == null)
+        {
+            StatusMessage = "Không thể mở hộp thoại lưu file";
             return;
         }
 
@@ -225,11 +261,33 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
                 return string.Join(Environment.NewLine, parts);
             }
 
+            // Hiển thị Save File Dialog
+            var defaultFileName = $"KetQuaTimKiem_Full_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+            var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Xuất Excel - Đầy đủ",
+                SuggestedFileName = defaultFileName,
+                DefaultExtension = "xlsx",
+                FileTypeChoices = new[]
+                {
+                    new FilePickerFileType("Excel Files")
+                    {
+                        Patterns = new[] { "*.xlsx" }
+                    }
+                }
+            });
+
+            if (file == null)
+            {
+                StatusMessage = "Đã hủy xuất file";
+                return;
+            }
+
             IsExporting = true;
             StatusMessage = "Đang xuất Excel đầy đủ...";
 
-            var fileName = $"KetQuaTimKiem_Full_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-            var filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), fileName);
+            var filePath = file.Path.LocalPath;
 
             await Task.Run(() =>
             {
@@ -315,7 +373,7 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
                 package.SaveAs(fileInfo);
             });
 
-            StatusMessage = $"Đã xuất file: {fileName}";
+            StatusMessage = $"Đã xuất file: {Path.GetFileName(filePath)}";
         }
         catch (Exception ex)
         {

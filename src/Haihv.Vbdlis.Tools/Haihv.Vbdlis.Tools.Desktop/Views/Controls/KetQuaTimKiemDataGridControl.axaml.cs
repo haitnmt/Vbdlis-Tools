@@ -30,4 +30,28 @@ public partial class KetQuaTimKiemDataGridControl : UserControl
     {
         ViewModel?.UpdateData(response);
     }
+
+    /// <summary>
+    /// Event handler cho MenuItem Xuất Excel Compact
+    /// </summary>
+    private async void OnExportExcelCompactClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (ViewModel?.ExportExcelCompactCommand.CanExecute(topLevel) == true)
+        {
+            await ViewModel.ExportExcelCompactCommand.ExecuteAsync(topLevel);
+        }
+    }
+
+    /// <summary>
+    /// Event handler cho MenuItem Xuất Excel Full
+    /// </summary>
+    private async void OnExportExcelFullClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (ViewModel?.ExportExcelFullCommand.CanExecute(topLevel) == true)
+        {
+            await ViewModel.ExportExcelFullCommand.ExecuteAsync(topLevel);
+        }
+    }
 }
