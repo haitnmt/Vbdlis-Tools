@@ -44,7 +44,7 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
     {
         if (response?.Data == null || response.Data.Count == 0)
         {
-            UpdateCollectionOnUiThread(Array.Empty<KetQuaTimKiemModel>(), "Không có dữ liệu");
+            UpdateCollectionOnUiThread([], "Không có dữ liệu");
             return;
         }
 
@@ -150,7 +150,7 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
                     worksheet.Cells[row, 1].Value = i + 1;
 
                     // Thông tin chủ sử dụng
-                    worksheet.Cells[row, 2].Value = item.ChuSuDung.DanhSachChuSoHuu;
+                    worksheet.Cells[row, 2].Value = item.ChuSuDungCompact;
 
                     // Thông tin giấy chứng nhận
                     var gcnInfo = $"Số phát hành: {item.GiayChungNhanModel.SoPhatHanh}";
@@ -324,7 +324,7 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
                     var row = i + 2;
 
                     worksheet.Cells[row, 1].Value = i + 1;
-                    worksheet.Cells[row, 2].Value = item.ChuSuDung.DanhSachChuSoHuu;
+                    worksheet.Cells[row, 2].Value = item.ListChuSuDung?.FirstOrDefault()?.TenChu ?? "";
                     // Giấy chứng nhận
                     worksheet.Cells[row, 3].Value = item.GiayChungNhanModel.SoPhatHanh;
                     worksheet.Cells[row, 4].Value = item.GiayChungNhanModel.SoVaoSo;

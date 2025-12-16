@@ -116,7 +116,7 @@
             <DataTemplate>
               <SelectableTextBlock
                 Margin="4"
-                Text="{Binding ChuSuDung.DanhSachChuSoHuu}"
+                Text="{Binding ChuSuDungCompact}"
                 TextWrapping="Wrap" />
             </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>

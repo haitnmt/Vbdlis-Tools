@@ -176,46 +176,57 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
                         Log.Information("Empty item, skipping search");
                         return null;
                     }
-                    var modifiedItem = item.NormalizePersonalId();
-                    if (modifiedItem == null)
-                    {
-                        Log.Information("Item normalization returned null for item: {Item}", item);
-                        return null;
-                    }
-                    Log.Information("Searching for item: {Item}", modifiedItem);
-                    var result = await _searchService.SearchAsync(soGiayTo: modifiedItem);
-                    if (result != null)
+                    var normalizedItem = item.Trim();
+                    Log.Information("Searching for item: {Item}", normalizedItem);
+                    var result = await _searchService.SearchAsync(soGiayTo: normalizedItem);
+                    if (result != null && result.Data != null && result.Data.Count > 0)
                     {
                         Log.Information("SearchAsync returned {Count} results for item: {Item}", result.Data?.Count ?? 0, item);
                         return result;
                     }
                     else
                     {
-                        Log.Information("Thử lại sau khi bỏ số 0 ở đầu cho item: {Item}", item);
-                        modifiedItem = modifiedItem.TrimStart('0');
-                        if (item.Length == modifiedItem.Length)
+                        normalizedItem = item.NormalizePersonalId();
+                        if (normalizedItem == null)
                         {
-                            Log.Information("No leading zeros to remove for item: {Item}", item);
+                            Log.Information("Item normalization returned null for item: {Item}", normalizedItem);
                             return null;
                         }
-                        result = await _searchService.SearchAsync(soGiayTo: modifiedItem);
-                        if (result != null)
+                        Log.Information("Searching for item: {Item}", normalizedItem);
+                        result = await _searchService.SearchAsync(soGiayTo: normalizedItem);
+                        if (result != null && result.Data != null && result.Data.Count > 0)
                         {
-                            Log.Information("SearchAsync returned {Count} results for modified item: {Item}", result.Data?.Count ?? 0, item);
+                            Log.Information("SearchAsync returned {Count} results for item: {Item}", result.Data?.Count ?? 0, normalizedItem);
                             return result;
                         }
                         else
                         {
-                            Log.Information("Thử lại sau khi bỏ 0 ở đầu cho item lần 2: {Item}", item);
-                            modifiedItem = modifiedItem.TrimStart('0');
-                            if (item.Length == modifiedItem.Length)
+                            Log.Information("Thử lại sau khi bỏ số 0 ở đầu cho item: {Item}", normalizedItem);
+                            var modifiedItem = normalizedItem.TrimStart('0');
+                            if (normalizedItem?.Length == modifiedItem.Length)
                             {
-                                Log.Information("No leading zeros to remove for item: {Item}", item);
+                                Log.Information("No leading zeros to remove for item: {Item}", normalizedItem);
                                 return null;
                             }
-                            return await _searchService.SearchAsync(soGiayTo: modifiedItem);
-                        }
+                            result = await _searchService.SearchAsync(soGiayTo: modifiedItem);
+                            if (result != null && result.Data != null && result.Data.Count > 0)
+                            {
+                                Log.Information("SearchAsync returned {Count} results for modified item: {Item}", result.Data?.Count ?? 0, modifiedItem);
+                                return result;
+                            }
+                            else
+                            {
+                                Log.Information("Thử lại sau khi bỏ 0 ở đầu cho item lần 2: {Item}", normalizedItem);
+                                modifiedItem = modifiedItem.TrimStart('0');
+                                if (normalizedItem?.Length == modifiedItem.Length)
+                                {
+                                    Log.Information("No leading zeros to remove for item: {Item}", modifiedItem);
+                                    return null;
+                                }
+                                return await _searchService.SearchAsync(soGiayTo: modifiedItem);
+                            }
 
+                        }
                     }
 
                 }, "số giấy tờ");
@@ -263,7 +274,7 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
         return null;
     }
 
-    private string[] ParseInput(string input)
+    private static string[] ParseInput(string input)
     {
         return [.. input
             .Split(['\n', '\r', ';'], StringSplitOptions.RemoveEmptyEntries)

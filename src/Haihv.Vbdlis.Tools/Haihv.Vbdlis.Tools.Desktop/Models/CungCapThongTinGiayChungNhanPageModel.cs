@@ -397,28 +397,406 @@ public class ThuaDatLightDto
     [JsonPropertyName("ListMucDichSuDung")] public List<MucDichSuDungDto>? ListMucDichSuDung { get; set; }
 }
 
-// DTO rút gọn cho Cá nhân
-public class CaNhanLightDto
+// DTO cho Loại giấy tờ tùy thân
+public class LoaiGiayToTuyThanDto
 {
-    [JsonPropertyName("caNhanId")] public long CaNhanId { get; set; }
-    [JsonPropertyName("hoTen")] public string? HoTen { get; set; }
-    [JsonPropertyName("namSinh")] public int? NamSinh { get; set; }
-    [JsonPropertyName("xaId")] public int? XaId { get; set; }
-    [JsonPropertyName("diaChi")] public string? DiaChi { get; set; }
+    [JsonPropertyName("loaiGiayToTuyThanId")] public int LoaiGiayToTuyThanId { get; set; }
+    [JsonPropertyName("maLoaiGiayTo")] public string? MaLoaiGiayTo { get; set; }
+    [JsonPropertyName("tenLoaiGiayTo")] public string? TenLoaiGiayTo { get; set; }
 }
 
-// DTO rút gọn cho Hộ gia đình
-public class HoGiaDinhLightDto
+// DTO cho Giấy tờ tùy thân
+public class GiayToTuyThanDto
+{
+    [JsonPropertyName("CreatedDate")] public string? CreatedDate { get; set; }
+    [JsonPropertyName("ModifiedDate")] public string? ModifiedDate { get; set; }
+    [JsonPropertyName("giayToTuyThanId")] public long GiayToTuyThanId { get; set; }
+    [JsonPropertyName("caNhanId")] public long? CaNhanId { get; set; }
+    [JsonPropertyName("laThongTinChinh")] public bool? LaThongTinChinh { get; set; }
+    [JsonPropertyName("loaiGiayToTuyThanId")] public int? LoaiGiayToTuyThanId { get; set; }
+    [JsonPropertyName("soGiayTo")] public string? SoGiayTo { get; set; }
+    [JsonPropertyName("ngayCap")] public string? NgayCap { get; set; }
+    [JsonPropertyName("noiCap")] public string? NoiCap { get; set; }
+    [JsonPropertyName("ngayHetHan")] public string? NgayHetHan { get; set; }
+    [JsonPropertyName("ghiChu")] public string? GhiChu { get; set; }
+    [JsonPropertyName("daDinhDanh")] public bool? DaDinhDanh { get; set; }
+    [JsonPropertyName("trangThaiXacThuc")] public int? TrangThaiXacThuc { get; set; }
+    [JsonPropertyName("versionCaNhan")] public int? VersionCaNhan { get; set; }
+    [JsonPropertyName("hinhThucXacThuc")] public int? HinhThucXacThuc { get; set; }
+    [JsonPropertyName("maDinhDanhCaNhan")] public string? MaDinhDanhCaNhan { get; set; }
+    [JsonPropertyName("groupKey")] public string? GroupKey { get; set; }
+    [JsonPropertyName("LoaiGiayToTuyThan")] public LoaiGiayToTuyThanDto? LoaiGiayToTuyThan { get; set; }
+
+    // Metadata chung
+    [JsonPropertyName("Id")] public string? Id { get; set; }
+    [JsonPropertyName("Title")] public string? Title { get; set; }
+    [JsonPropertyName("Description")] public string? Description { get; set; }
+    [JsonPropertyName("Name")] public string? Name { get; set; }
+    [JsonPropertyName("Path")] public string? Path { get; set; }
+    [JsonPropertyName("ParentPath")] public string? ParentPath { get; set; }
+    [JsonPropertyName("Layer")] public string? Layer { get; set; }
+    [JsonPropertyName("InId")] public string? InId { get; set; }
+    [JsonPropertyName("OutId")] public string? OutId { get; set; }
+}
+
+// DTO đầy đủ cho Cá nhân (với ListGiayToTuyThan và ListDiaChi)
+public class CaNhanFullDto
+{
+    [JsonPropertyName("caNhanId")] public long CaNhanId { get; set; }
+    [JsonPropertyName("maSoDinhDanh")] public string? MaSoDinhDanh { get; set; }
+    [JsonPropertyName("loaiDoiTuongId")] public int? LoaiDoiTuongId { get; set; }
+    [JsonPropertyName("maSoThue")] public string? MaSoThue { get; set; }
+    [JsonPropertyName("gioiTinh")] public bool? GioiTinh { get; set; }
+    [JsonPropertyName("hoTen")] public string? HoTen { get; set; }
+    [JsonPropertyName("ngaySinh")] public string? NgaySinh { get; set; }
+    [JsonPropertyName("namSinh")] public int? NamSinh { get; set; }
+    [JsonPropertyName("namMat")] public int? NamMat { get; set; }
+    [JsonPropertyName("soDienThoai")] public string? SoDienThoai { get; set; }
+    [JsonPropertyName("diaChiEmail")] public string? DiaChiEmail { get; set; }
+    [JsonPropertyName("quocTichId1")] public int? QuocTichId1 { get; set; }
+    [JsonPropertyName("quocTichId2")] public int? QuocTichId2 { get; set; }
+    [JsonPropertyName("danTocId")] public int? DanTocId { get; set; }
+    [JsonPropertyName("xaId")] public int? XaId { get; set; }
+    [JsonPropertyName("diaChi")] public string? DiaChi { get; set; }
+    [JsonPropertyName("version")] public int? Version { get; set; }
+    [JsonPropertyName("isLastest")] public bool? IsLastest { get; set; }
+    [JsonPropertyName("isNew")] public bool? IsNew { get; set; }
+    [JsonPropertyName("isChange")] public bool? IsChange { get; set; }
+    [JsonPropertyName("isCaNhan1")] public bool? IsCaNhan1 { get; set; }
+    [JsonPropertyName("maChuSuDung")] public string? MaChuSuDung { get; set; }
+    [JsonPropertyName("ListGiayToTuyThan")] public List<GiayToTuyThanDto>? ListGiayToTuyThan { get; set; }
+    [JsonPropertyName("ListDiaChi")] public List<DiaChiFullDto>? ListDiaChi { get; set; }
+    [JsonPropertyName("LoaiDoiTuong")] public object? LoaiDoiTuong { get; set; }
+    [JsonPropertyName("QuocTich1")] public object? QuocTich1 { get; set; }
+    [JsonPropertyName("QuocTich2")] public object? QuocTich2 { get; set; }
+    [JsonPropertyName("DanToc")] public object? DanToc { get; set; }
+
+    // Metadata chung
+    [JsonPropertyName("Id")] public string? Id { get; set; }
+    [JsonPropertyName("Title")] public string? Title { get; set; }
+    [JsonPropertyName("Description")] public string? Description { get; set; }
+    [JsonPropertyName("Name")] public string? Name { get; set; }
+    [JsonPropertyName("Path")] public string? Path { get; set; }
+    [JsonPropertyName("ParentPath")] public string? ParentPath { get; set; }
+    [JsonPropertyName("Layer")] public string? Layer { get; set; }
+    [JsonPropertyName("InId")] public string? InId { get; set; }
+    [JsonPropertyName("OutId")] public string? OutId { get; set; }
+}
+
+// DTO đầy đủ cho Vợ chồng
+public class VoChongDto
+{
+    [JsonPropertyName("voChongId")] public long VoChongId { get; set; }
+    [JsonPropertyName("voId")] public long? VoId { get; set; }
+    [JsonPropertyName("chongId")] public long? ChongId { get; set; }
+    [JsonPropertyName("soGiayChungNhanKetHon")] public string? SoGiayChungNhanKetHon { get; set; }
+    [JsonPropertyName("quyenSoGiayChungNhanKetHon")] public string? QuyenSoGiayChungNhanKetHon { get; set; }
+    [JsonPropertyName("thongTinDaiDien")] public string? ThongTinDaiDien { get; set; }
+    [JsonPropertyName("xaId")] public int? XaId { get; set; }
+    [JsonPropertyName("thoiDiemHinhThanh")] public string? ThoiDiemHinhThanh { get; set; }
+    [JsonPropertyName("thoiDiemKetThuc")] public string? ThoiDiemKetThuc { get; set; }
+    [JsonPropertyName("tinhTrangHonNhan")] public bool? TinhTrangHonNhan { get; set; }
+    [JsonPropertyName("inVoTruoc")] public bool? InVoTruoc { get; set; }
+    [JsonPropertyName("version")] public int? Version { get; set; }
+    [JsonPropertyName("versionChong")] public int? VersionChong { get; set; }
+    [JsonPropertyName("versionVo")] public int? VersionVo { get; set; }
+    [JsonPropertyName("isLastest")] public bool? IsLastest { get; set; }
+    [JsonPropertyName("isNew")] public bool? IsNew { get; set; }
+    [JsonPropertyName("isChange")] public bool? IsChange { get; set; }
+    [JsonPropertyName("Chong")] public CaNhanFullDto? Chong { get; set; }
+    [JsonPropertyName("Vo")] public CaNhanFullDto? Vo { get; set; }
+
+    // Metadata chung
+    [JsonPropertyName("Id")] public string? Id { get; set; }
+    [JsonPropertyName("Title")] public string? Title { get; set; }
+    [JsonPropertyName("Description")] public string? Description { get; set; }
+    [JsonPropertyName("Name")] public string? Name { get; set; }
+    [JsonPropertyName("Path")] public string? Path { get; set; }
+    [JsonPropertyName("ParentPath")] public string? ParentPath { get; set; }
+    [JsonPropertyName("Layer")] public string? Layer { get; set; }
+    [JsonPropertyName("InId")] public string? InId { get; set; }
+    [JsonPropertyName("OutId")] public string? OutId { get; set; }
+}
+
+// DTO đầy đủ cho Hộ gia đình
+public class HoGiaDinhFullDto
 {
     [JsonPropertyName("hoGiaDinhId")] public long HoGiaDinhId { get; set; }
     [JsonPropertyName("chuHoId")] public long? ChuHoId { get; set; }
     [JsonPropertyName("voChongChuHoId")] public long? VoChongChuHoId { get; set; }
+    [JsonPropertyName("soSoHoKhau")] public string? SoSoHoKhau { get; set; }
+    [JsonPropertyName("hoSoHoKhauSo")] public string? HoSoHoKhauSo { get; set; }
     [JsonPropertyName("xaId")] public int? XaId { get; set; }
     [JsonPropertyName("diaChi")] public string? DiaChi { get; set; }
     [JsonPropertyName("version")] public int? Version { get; set; }
-    [JsonPropertyName("isLastest")] public bool IsLastest { get; set; }
-    [JsonPropertyName("VoChong")] public CaNhanLightDto? VoChong { get; set; }
-    [JsonPropertyName("ChuHo")] public CaNhanLightDto? ChuHo { get; set; }
+    [JsonPropertyName("versionChuHo")] public int? VersionChuHo { get; set; }
+    [JsonPropertyName("versionVoChongChuHo")] public int? VersionVoChongChuHo { get; set; }
+    [JsonPropertyName("isLastest")] public bool? IsLastest { get; set; }
+    [JsonPropertyName("isNew")] public bool? IsNew { get; set; }
+    [JsonPropertyName("isChange")] public bool? IsChange { get; set; }
+    [JsonPropertyName("VoChong")] public CaNhanFullDto? VoChong { get; set; }
+    [JsonPropertyName("ChuHo")] public CaNhanFullDto? ChuHo { get; set; }
+    [JsonPropertyName("ListDiaChi")] public List<DiaChiFullDto>? ListDiaChi { get; set; }
+    [JsonPropertyName("ListThanhVienHoGiaDinh")] public List<CaNhanFullDto>? ListThanhVienHoGiaDinh { get; set; }
+
+    // Metadata chung
+    [JsonPropertyName("Id")] public string? Id { get; set; }
+    [JsonPropertyName("Title")] public string? Title { get; set; }
+    [JsonPropertyName("Description")] public string? Description { get; set; }
+    [JsonPropertyName("Name")] public string? Name { get; set; }
+    [JsonPropertyName("Path")] public string? Path { get; set; }
+    [JsonPropertyName("ParentPath")] public string? ParentPath { get; set; }
+    [JsonPropertyName("Layer")] public string? Layer { get; set; }
+    [JsonPropertyName("InId")] public string? InId { get; set; }
+    [JsonPropertyName("OutId")] public string? OutId { get; set; }
+}
+
+// DTO đầy đủ cho Địa chỉ
+public class DiaChiFullDto
+{
+    [JsonPropertyName("diaChiId")] public long DiaChiId { get; set; }
+    [JsonPropertyName("typeItem")] public int? TypeItem { get; set; }
+    [JsonPropertyName("itemId")] public long? ItemId { get; set; }
+    [JsonPropertyName("tinhId")] public int? TinhId { get; set; }
+    [JsonPropertyName("huyenId")] public int? HuyenId { get; set; }
+    [JsonPropertyName("xaId")] public int? XaId { get; set; }
+    [JsonPropertyName("diaChiChiTiet")] public string? DiaChiChiTiet { get; set; }
+    [JsonPropertyName("soNha")] public string? SoNha { get; set; }
+    [JsonPropertyName("ngoPho")] public string? NgoPho { get; set; }
+    [JsonPropertyName("duongId")] public int? DuongId { get; set; }
+    [JsonPropertyName("tenDuong")] public string? TenDuong { get; set; }
+    [JsonPropertyName("toDanPhoId")] public int? ToDanPhoId { get; set; }
+    [JsonPropertyName("tenToDanPho")] public string? TenToDanPho { get; set; }
+    [JsonPropertyName("laDiaChiCu")] public bool? LaDiaChiCu { get; set; }
+    [JsonPropertyName("laDiaChiChinh")] public bool LaDiaChiChinh { get; set; }
+    [JsonPropertyName("trangThai")] public bool? TrangThai { get; set; }
+    [JsonPropertyName("versionItem")] public int? VersionItem { get; set; }
+    [JsonPropertyName("maDiaChiSo")] public string? MaDiaChiSo { get; set; }
+    [JsonPropertyName("Tinh")] public object? Tinh { get; set; }
+    [JsonPropertyName("Huyen")] public object? Huyen { get; set; }
+    [JsonPropertyName("Xa")] public object? Xa { get; set; }
+    [JsonPropertyName("Duong")] public object? Duong { get; set; }
+    [JsonPropertyName("ToDanPho")] public object? ToDanPho { get; set; }
+
+    // Metadata chung
+    [JsonPropertyName("Id")] public string? Id { get; set; }
+    [JsonPropertyName("Title")] public string? Title { get; set; }
+    [JsonPropertyName("Description")] public string? Description { get; set; }
+    [JsonPropertyName("Name")] public string? Name { get; set; }
+    [JsonPropertyName("Path")] public string? Path { get; set; }
+    [JsonPropertyName("ParentPath")] public string? ParentPath { get; set; }
+    [JsonPropertyName("Layer")] public string? Layer { get; set; }
+    [JsonPropertyName("InId")] public string? InId { get; set; }
+    [JsonPropertyName("OutId")] public string? OutId { get; set; }
+}
+
+// DTO cho Giấy tờ tổ chức
+public class GiayToToChucDto
+{
+    [JsonPropertyName("giayToToChucId")] public long GiayToToChucId { get; set; }
+    [JsonPropertyName("toChucId")] public long? ToChucId { get; set; }
+    [JsonPropertyName("loaiGiayToToChucId")] public int? LoaiGiayToToChucId { get; set; }
+    [JsonPropertyName("soGiayTo")] public string? SoGiayTo { get; set; }
+    [JsonPropertyName("ngayCap")] public string? NgayCap { get; set; }
+    [JsonPropertyName("noiCap")] public string? NoiCap { get; set; }
+    [JsonPropertyName("ngayHetHan")] public string? NgayHetHan { get; set; }
+    [JsonPropertyName("ghiChu")] public string? GhiChu { get; set; }
+    [JsonPropertyName("versionToChuc")] public int? VersionToChuc { get; set; }
+    [JsonPropertyName("hinhThucXacThuc")] public int? HinhThucXacThuc { get; set; }
+    [JsonPropertyName("maDinhDanhDoanhNghiep")] public string? MaDinhDanhDoanhNghiep { get; set; }
+    [JsonPropertyName("LoaiGiayToToChuc")] public object? LoaiGiayToToChuc { get; set; }
+
+    // Metadata chung
+    [JsonPropertyName("Id")] public string? Id { get; set; }
+    [JsonPropertyName("Title")] public string? Title { get; set; }
+    [JsonPropertyName("Description")] public string? Description { get; set; }
+    [JsonPropertyName("Name")] public string? Name { get; set; }
+    [JsonPropertyName("Path")] public string? Path { get; set; }
+    [JsonPropertyName("ParentPath")] public string? ParentPath { get; set; }
+    [JsonPropertyName("Layer")] public string? Layer { get; set; }
+    [JsonPropertyName("InId")] public string? InId { get; set; }
+    [JsonPropertyName("OutId")] public string? OutId { get; set; }
+}
+
+// DTO cho Tổ chức
+public class ToChucDto
+{
+    [JsonPropertyName("toChucId")] public long ToChucId { get; set; }
+    [JsonPropertyName("maSoDinhDanh")] public string? MaSoDinhDanh { get; set; }
+    [JsonPropertyName("tenToChuc")] public string? TenToChuc { get; set; }
+    [JsonPropertyName("tenVietTat")] public string? TenVietTat { get; set; }
+    [JsonPropertyName("tenToChucTA")] public string? TenToChucTA { get; set; }
+    [JsonPropertyName("nguoiDaiDienId")] public long? NguoiDaiDienId { get; set; }
+    [JsonPropertyName("loaiQuyetDinhThanhLap")] public string? LoaiQuyetDinhThanhLap { get; set; }
+    [JsonPropertyName("soQuyetDinh")] public string? SoQuyetDinh { get; set; }
+    [JsonPropertyName("ngayQuyetDinh")] public string? NgayQuyetDinh { get; set; }
+    [JsonPropertyName("maDoanhNghiep")] public string? MaDoanhNghiep { get; set; }
+    [JsonPropertyName("maSoThue")] public string? MaSoThue { get; set; }
+    [JsonPropertyName("loaiToChucId")] public int? LoaiToChucId { get; set; }
+    [JsonPropertyName("xaId")] public int? XaId { get; set; }
+    [JsonPropertyName("diaChi")] public string? DiaChi { get; set; }
+    [JsonPropertyName("version")] public int? Version { get; set; }
+    [JsonPropertyName("versionNguoiDaiDien")] public int? VersionNguoiDaiDien { get; set; }
+    [JsonPropertyName("isLastest")] public bool? IsLastest { get; set; }
+    [JsonPropertyName("laDoiTuongQuanLyDat")] public bool? LaDoiTuongQuanLyDat { get; set; }
+    [JsonPropertyName("isNew")] public bool? IsNew { get; set; }
+    [JsonPropertyName("isChange")] public bool? IsChange { get; set; }
+    [JsonPropertyName("NguoiDaiDien")] public object? NguoiDaiDien { get; set; }
+    [JsonPropertyName("ListDiaChi")] public List<DiaChiFullDto>? ListDiaChi { get; set; }
+    [JsonPropertyName("ListGiayToBoSung")] public List<GiayToToChucDto>? ListGiayToBoSung { get; set; }
+    [JsonPropertyName("LoaiToChuc")] public object? LoaiToChuc { get; set; }
+
+    // Metadata chung
+    [JsonPropertyName("Id")] public string? Id { get; set; }
+    [JsonPropertyName("Title")] public string? Title { get; set; }
+    [JsonPropertyName("Description")] public string? Description { get; set; }
+    [JsonPropertyName("Name")] public string? Name { get; set; }
+    [JsonPropertyName("Path")] public string? Path { get; set; }
+    [JsonPropertyName("ParentPath")] public string? ParentPath { get; set; }
+    [JsonPropertyName("Layer")] public string? Layer { get; set; }
+    [JsonPropertyName("InId")] public string? InId { get; set; }
+    [JsonPropertyName("OutId")] public string? OutId { get; set; }
+}
+
+// DTO đầy đủ cho Loại mục đích sử dụng
+public class LoaiMucDichSuDungFullDto
+{
+    [JsonPropertyName("loaiMucDichSuDungId")] public string? LoaiMucDichSuDungId { get; set; }
+    [JsonPropertyName("kyHieuLoaiMucDichSuDung")] public string? KyHieuLoaiMucDichSuDung { get; set; }
+    [JsonPropertyName("tenLoaiMucDichSuDung")] public string? TenLoaiMucDichSuDung { get; set; }
+    [JsonPropertyName("moTaLoaiMucDichSuDung")] public string? MoTaLoaiMucDichSuDung { get; set; }
+    [JsonPropertyName("trangThai")] public bool? TrangThai { get; set; }
+}
+
+// DTO đầy đủ cho Loại nguồn gốc sử dụng đất
+public class LoaiNguonGocSuDungDatFullDto
+{
+    [JsonPropertyName("loaiNguonGocSuDungDatId")] public int LoaiNguonGocSuDungDatId { get; set; }
+    [JsonPropertyName("maLoaiNguonGocSuDungDat")] public string? MaLoaiNguonGocSuDungDat { get; set; }
+    [JsonPropertyName("tenLoaiNguonGocInGiay")] public string? TenLoaiNguonGocInGiay { get; set; }
+    [JsonPropertyName("tenLoaiNguonGocSoDiaChinh")] public string? TenLoaiNguonGocSoDiaChinh { get; set; }
+    [JsonPropertyName("moTa")] public string? MoTa { get; set; }
+    [JsonPropertyName("trangThai")] public bool? TrangThai { get; set; }
+}
+
+// DTO đầy đủ cho Nguồn gốc sử dụng đất
+public class NguonGocSuDungDatFullDto
+{
+    [JsonPropertyName("nguonGocSuDungDatId")] public long NguonGocSuDungDatId { get; set; }
+    [JsonPropertyName("mucDichSuDungId")] public long? MucDichSuDungId { get; set; }
+    [JsonPropertyName("thuaDatId")] public long? ThuaDatId { get; set; }
+    [JsonPropertyName("dienTich")] public double? DienTich { get; set; }
+    [JsonPropertyName("loaiNguonGocSuDungDatId")] public int? LoaiNguonGocSuDungDatId { get; set; }
+    [JsonPropertyName("loaiNguonGocChuyenQuyenId")] public int? LoaiNguonGocChuyenQuyenId { get; set; }
+    [JsonPropertyName("chiTiet")] public string? ChiTiet { get; set; }
+    [JsonPropertyName("versionThuaDat")] public int? VersionThuaDat { get; set; }
+    [JsonPropertyName("LoaiNguonGocSuDungDat")] public LoaiNguonGocSuDungDatFullDto? LoaiNguonGocSuDungDat { get; set; }
+    [JsonPropertyName("LoaiNguonGocChuyenQuyen")] public LoaiNguonGocChuyenQuyenDto? LoaiNguonGocChuyenQuyen { get; set; }
+    [JsonPropertyName("soThuTuMucDich")] public int? SoThuTuMucDich { get; set; }
+
+    // Metadata chung
+    [JsonPropertyName("Id")] public string? Id { get; set; }
+    [JsonPropertyName("Title")] public string? Title { get; set; }
+    [JsonPropertyName("Description")] public string? Description { get; set; }
+    [JsonPropertyName("Name")] public string? Name { get; set; }
+    [JsonPropertyName("Path")] public string? Path { get; set; }
+    [JsonPropertyName("ParentPath")] public string? ParentPath { get; set; }
+    [JsonPropertyName("Layer")] public string? Layer { get; set; }
+    [JsonPropertyName("InId")] public string? InId { get; set; }
+    [JsonPropertyName("OutId")] public string? OutId { get; set; }
+}
+
+// DTO đầy đủ cho Mục đích sử dụng
+public class MucDichSuDungFullDto
+{
+    [JsonPropertyName("mucDichSuDungId")] public long MucDichSuDungId { get; set; }
+    [JsonPropertyName("thuaDatId")] public long? ThuaDatId { get; set; }
+    [JsonPropertyName("soThuTu")] public int? SoThuTu { get; set; }
+    [JsonPropertyName("loaiMucDichSuDungId")] public string? LoaiMucDichSuDungId { get; set; }
+    [JsonPropertyName("loaiMucDichSuDungQuyHoachId")] public string? LoaiMucDichSuDungQuyHoachId { get; set; }
+    [JsonPropertyName("mucDichSuDungChiTiet")] public string? MucDichSuDungChiTiet { get; set; }
+    [JsonPropertyName("loaiMucDichSuDungPhuId")] public string? LoaiMucDichSuDungPhuId { get; set; }
+    [JsonPropertyName("dienTich")] public double? DienTich { get; set; }
+    [JsonPropertyName("ghiChu")] public string? GhiChu { get; set; }
+    [JsonPropertyName("ngayHinhThanh")] public string? NgayHinhThanh { get; set; }
+    [JsonPropertyName("thoiHanSuDung")] public string? ThoiHanSuDung { get; set; }
+    [JsonPropertyName("ngaySuDung")] public string? NgaySuDung { get; set; }
+    [JsonPropertyName("versionThuaDat")] public int? VersionThuaDat { get; set; }
+    [JsonPropertyName("isUpdate")] public bool? IsUpdate { get; set; }
+    [JsonPropertyName("thuaDatBuildId")] public long? ThuaDatBuildId { get; set; }
+    [JsonPropertyName("ListNguonGocSuDungDat")] public List<NguonGocSuDungDatFullDto>? ListNguonGocSuDungDat { get; set; }
+    [JsonPropertyName("LoaiMucDichSuDung")] public LoaiMucDichSuDungFullDto? LoaiMucDichSuDung { get; set; }
+    [JsonPropertyName("LoaiMucDichSuDungQuyHoach")] public object? LoaiMucDichSuDungQuyHoach { get; set; }
+    [JsonPropertyName("LoaiMucDichSuDungPhu")] public object? LoaiMucDichSuDungPhu { get; set; }
+
+    // Metadata chung
+    [JsonPropertyName("Id")] public string? Id { get; set; }
+    [JsonPropertyName("Title")] public string? Title { get; set; }
+    [JsonPropertyName("Description")] public string? Description { get; set; }
+    [JsonPropertyName("Name")] public string? Name { get; set; }
+    [JsonPropertyName("Path")] public string? Path { get; set; }
+    [JsonPropertyName("ParentPath")] public string? ParentPath { get; set; }
+    [JsonPropertyName("Layer")] public string? Layer { get; set; }
+    [JsonPropertyName("InId")] public string? InId { get; set; }
+    [JsonPropertyName("OutId")] public string? OutId { get; set; }
+}
+
+// DTO đầy đủ cho Thửa đất (sử dụng trong DangKyQuyenDto)
+public class ThuaDatFullInfoDto
+{
+    [JsonPropertyName("thuaDatId")] public long ThuaDatId { get; set; }
+    [JsonPropertyName("xaId")] public int? XaId { get; set; }
+    [JsonPropertyName("huyenId")] public int? HuyenId { get; set; }
+    [JsonPropertyName("tinhId")] public int? TinhId { get; set; }
+    [JsonPropertyName("soHieuToBanDo")] public int? SoHieuToBanDo { get; set; }
+    [JsonPropertyName("soThuTuThua")] public int? SoThuTuThua { get; set; }
+    [JsonPropertyName("maThua")] public string? MaThua { get; set; }
+    [JsonPropertyName("soHieuToBanDoCu")] public string? SoHieuToBanDoCu { get; set; }
+    [JsonPropertyName("soThuTuThuaCu")] public string? SoThuTuThuaCu { get; set; }
+    [JsonPropertyName("inSoLieuCu")] public bool? InSoLieuCu { get; set; }
+    [JsonPropertyName("mucDichSuDungGhep")] public string? MucDichSuDungGhep { get; set; }
+    [JsonPropertyName("nguonGocSuDungGhep")] public string? NguonGocSuDungGhep { get; set; }
+    [JsonPropertyName("dienTich")] public decimal? DienTich { get; set; }
+    [JsonPropertyName("dienTichPhapLy")] public decimal? DienTichPhapLy { get; set; }
+    [JsonPropertyName("laDoiTuongChiemDat")] public bool? LaDoiTuongChiemDat { get; set; }
+    [JsonPropertyName("quaTrinhSuDung")] public string? QuaTrinhSuDung { get; set; }
+    [JsonPropertyName("thoiDiemHinhThanh")] public string? ThoiDiemHinhThanh { get; set; }
+    [JsonPropertyName("soHieuToBanDoGoc")] public string? SoHieuToBanDoGoc { get; set; }
+    [JsonPropertyName("diaChi")] public string? DiaChi { get; set; }
+    [JsonPropertyName("duongDanSoDo")] public string? DuongDanSoDo { get; set; }
+    [JsonPropertyName("tenFileSoDo")] public string? TenFileSoDo { get; set; }
+    [JsonPropertyName("loaiThuaDat")] public string? LoaiThuaDat { get; set; }
+    [JsonPropertyName("lichSuHinhThanh")] public string? LichSuHinhThanh { get; set; }
+    [JsonPropertyName("noiDungQuyHoach")] public string? NoiDungQuyHoach { get; set; }
+    [JsonPropertyName("ghiChuDienTich")] public string? GhiChuDienTich { get; set; }
+    [JsonPropertyName("version")] public int? Version { get; set; }
+    [JsonPropertyName("isLastest")] public bool? IsLastest { get; set; }
+    [JsonPropertyName("historyId")] public string? HistoryId { get; set; }
+    [JsonPropertyName("maThuaDat")] public string? MaThuaDat { get; set; }
+    [JsonPropertyName("thuaDatIdOld")] public long? ThuaDatIdOld { get; set; }
+    [JsonPropertyName("thuaDatIdGoc")] public long? ThuaDatIdGoc { get; set; }
+    [JsonPropertyName("localId")] public long? LocalId { get; set; }
+    [JsonPropertyName("isNew")] public bool? IsNew { get; set; }
+    [JsonPropertyName("isChange")] public bool? IsChange { get; set; }
+    [JsonPropertyName("taiLieuDoDacId")] public string? TaiLieuDoDacId { get; set; }
+    [JsonPropertyName("TaiLieuDoDac")] public object? TaiLieuDoDac { get; set; }
+    [JsonPropertyName("ListDiaChi")] public List<DiaChiFullDto>? ListDiaChi { get; set; }
+    [JsonPropertyName("ListMucDichSuDung")] public List<MucDichSuDungFullDto>? ListMucDichSuDung { get; set; }
+    [JsonPropertyName("ShapeSolrGeometry")] public object? ShapeSolrGeometry { get; set; }
+    [JsonPropertyName("geoVN")] public object? GeoVN { get; set; }
+    [JsonPropertyName("thuaEditorId")] public string? ThuaEditorId { get; set; }
+    [JsonPropertyName("ModifiedDate")] public string? ModifiedDate { get; set; }
+
+    // Metadata chung
+    [JsonPropertyName("Id")] public string? Id { get; set; }
+    [JsonPropertyName("Title")] public string? Title { get; set; }
+    [JsonPropertyName("Description")] public string? Description { get; set; }
+    [JsonPropertyName("Name")] public string? Name { get; set; }
+    [JsonPropertyName("Path")] public string? Path { get; set; }
+    [JsonPropertyName("ParentPath")] public string? ParentPath { get; set; }
+    [JsonPropertyName("Layer")] public string? Layer { get; set; }
+    [JsonPropertyName("InId")] public string? InId { get; set; }
+    [JsonPropertyName("OutId")] public string? OutId { get; set; }
 }
 
 // DTO cho bản ghi Đăng ký quyền trong mảng ListDangKyQuyen
@@ -451,10 +829,26 @@ public class DangKyQuyenDto
     [JsonPropertyName("nghiaVuTaiChinhId")]
     public long? NghiaVuTaiChinhId { get; set; }
 
-    [JsonPropertyName("HoGiaDinh")] public HoGiaDinhLightDto? HoGiaDinh { get; set; }
-    [JsonPropertyName("ThuaDat")] public ThuaDatLightDto? ThuaDat { get; set; }
+    [JsonPropertyName("CaNhan")] public CaNhanFullDto? CaNhan { get; set; }
+    [JsonPropertyName("VoChong")] public VoChongDto? VoChong { get; set; }
+    [JsonPropertyName("HoGiaDinh")] public HoGiaDinhFullDto? HoGiaDinh { get; set; }
+    [JsonPropertyName("ToChuc")] public ToChucDto? ToChuc { get; set; }
+    [JsonPropertyName("CongDong")] public object? CongDong { get; set; }
+    [JsonPropertyName("NhomNguoi")] public object? NhomNguoi { get; set; }
+    [JsonPropertyName("ThuaDat")] public ThuaDatFullInfoDto? ThuaDat { get; set; }
+    [JsonPropertyName("MucDichSuDung")] public object? MucDichSuDung { get; set; }
     [JsonPropertyName("NhaRiengLe")] public NhaRiengLeDto? NhaRiengLe { get; set; }
+    [JsonPropertyName("HangMucNhaRiengLe")] public object? HangMucNhaRiengLe { get; set; }
     [JsonPropertyName("CanHo")] public CanHoDto? CanHo { get; set; }
+    [JsonPropertyName("HangMucSoHuuChung")] public object? HangMucSoHuuChung { get; set; }
+    [JsonPropertyName("NhaChungCu")] public object? NhaChungCu { get; set; }
+    [JsonPropertyName("CongTrinhXayDung")] public object? CongTrinhXayDung { get; set; }
+    [JsonPropertyName("CongTrinhNgam")] public object? CongTrinhNgam { get; set; }
+    [JsonPropertyName("HangMucCongTrinh")] public object? HangMucCongTrinh { get; set; }
+    [JsonPropertyName("RungTrong")] public object? RungTrong { get; set; }
+    [JsonPropertyName("CayLauNam")] public object? CayLauNam { get; set; }
+    [JsonPropertyName("keyDangKyQuyen")] public string? KeyDangKyQuyen { get; set; }
+    [JsonPropertyName("edgeId")] public string? EdgeId { get; set; }
 
     // Metadata chung
     [JsonPropertyName("Id")] public string? Id { get; set; }

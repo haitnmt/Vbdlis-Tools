@@ -139,41 +139,89 @@ public static class KetQuaTimKiemExxtensions
                     ngayVaoSo: ParseJsonDate(giayChungNhan?.NgayVaoSo)
                 );
 
-                // Lấy thông tin tất cả chủ sở hữu
-                var danhSachChuSoHuu = item.ChuSoHuu != null && item.ChuSoHuu.Count > 0
-                    ? string.Join("\n---\n", item.ChuSoHuu.Select(chu =>
-                    {
-                        var parts = new List<string>();
-
-                        if (!string.IsNullOrWhiteSpace(chu.HoTen))
-                        {
-                            if (chu.HoTen.Contains("ông", StringComparison.OrdinalIgnoreCase) ||
-                                chu.HoTen.Contains("bà", StringComparison.OrdinalIgnoreCase) ||
-                                chu.HoTen.Contains("cô", StringComparison.OrdinalIgnoreCase) ||
-                                chu.HoTen.Contains("chú", StringComparison.OrdinalIgnoreCase))
-                            {
-                                // Nếu đã có tiền tố trong họ tên thì không thêm nữa
-                                chu.GioiTinh = -1; // Không xác định
-                            }
-                            var tienTo = chu.GioiTinh == 1 ? "Ông" : (chu.GioiTinh == 0 ? "Bà" : "");
-                            var hoTen = !string.IsNullOrWhiteSpace(tienTo) ? $"{tienTo} {chu.HoTen}" : chu.HoTen;
-                            parts.Add($"Họ tên: {hoTen}");
-                        }
-                        if (!string.IsNullOrWhiteSpace(chu.NamSinh))
-                            parts.Add($"Năm sinh: {chu.NamSinh}");
-                        if (!string.IsNullOrWhiteSpace(chu.SoGiayTo))
-                            parts.Add($"Số giấy tờ: {chu.SoGiayTo}");
-                        if (!string.IsNullOrWhiteSpace(chu.DiaChi))
-                            parts.Add($"Địa chỉ: {chu.DiaChi}");
-
-                        return string.Join("\n", parts);
-                    }))
-                    : "";
-
-                var chuSuDungModel = new ChuSuDungModel(danhSachChuSoHuu);
-
                 // Lấy thông tin tài sản và thửa đất từ ListDangKyQuyen
                 var listDangKyQuyen = giayChungNhan?.ListDangKyQuyen ?? [];
+
+                // Thu thập tất cả chủ sử dụng (bỏ trùng theo ID)
+                var allChuSuDung = new List<ChuSuDungModel>();
+
+                // Thu thập tất cả CaNhan (bỏ trùng theo CaNhanId)
+                var allCaNhan = listDangKyQuyen
+                    .Where(d => d.CaNhan != null)
+                    .Select(d => d.CaNhan!)
+                    .GroupBy(c => c.CaNhanId)
+                    .Select(g => g.First());
+
+                foreach (var caNhan in allCaNhan)
+                {
+                    allChuSuDung.Add(new ChuSuDungModel { CaNhan = caNhan });
+                }
+
+                // Thu thập tất cả VoChong (bỏ trùng theo VoChongId)
+                var allVoChong = listDangKyQuyen
+                    .Where(d => d.VoChong != null)
+                    .Select(d => d.VoChong!)
+                    .GroupBy(v => v.VoChongId)
+                    .Select(g => g.First());
+
+                foreach (var voChong in allVoChong)
+                {
+                    allChuSuDung.Add(new ChuSuDungModel { VoChong = voChong });
+                }
+
+                // Thu thập tất cả HoGiaDinh (bỏ trùng theo HoGiaDinhId)
+                var allHoGiaDinh = listDangKyQuyen
+                    .Where(d => d.HoGiaDinh != null)
+                    .Select(d => d.HoGiaDinh!)
+                    .GroupBy(h => h.HoGiaDinhId)
+                    .Select(g => g.First());
+
+                foreach (var hoGiaDinh in allHoGiaDinh)
+                {
+                    allChuSuDung.Add(new ChuSuDungModel { HoGiaDinh = hoGiaDinh });
+                }
+
+                // Thu thập tất cả ToChuc (bỏ trùng theo ToChucId)
+                var allToChuc = listDangKyQuyen
+                    .Where(d => d.ToChuc != null)
+                    .Select(d => d.ToChuc!)
+                    .GroupBy(t => t.ToChucId)
+                    .Select(g => g.First());
+
+                foreach (var toChuc in allToChuc)
+                {
+                    allChuSuDung.Add(new ChuSuDungModel { ToChuc = toChuc });
+                }
+
+                // Thu thập CongDong (bỏ trùng)
+                var allCongDong = listDangKyQuyen
+                    .Where(d => d.CongDong != null)
+                    .Select(d => d.CongDong?.ToString())
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Distinct();
+
+                foreach (var congDong in allCongDong)
+                {
+                    allChuSuDung.Add(new ChuSuDungModel { CongDong = congDong });
+                }
+
+                // Thu thập NhomNguoi (bỏ trùng)
+                var allNhomNguoi = listDangKyQuyen
+                    .Where(d => d.NhomNguoi != null)
+                    .Select(d => d.NhomNguoi?.ToString())
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Distinct();
+
+                foreach (var nhomNguoi in allNhomNguoi)
+                {
+                    allChuSuDung.Add(new ChuSuDungModel { NhomNguoi = nhomNguoi });
+                }
+
+                // Nếu không có chủ sử dụng nào, tạo một ChuSuDungModel trống
+                if (allChuSuDung.Count == 0)
+                {
+                    allChuSuDung.Add(new ChuSuDungModel());
+                }
 
                 // Tạo HashSet để theo dõi và loại bỏ trùng lặp
                 var uniqueThuaDat = new HashSet<string>();
@@ -338,8 +386,9 @@ public static class KetQuaTimKiemExxtensions
                     }
                 }
 
+                // Tạo một KetQuaTimKiemModel duy nhất với tất cả chủ sử dụng
                 results.Add(new KetQuaTimKiemModel(
-                    ChuSuDung: chuSuDungModel,
+                    ListChuSuDung: allChuSuDung,
                     GiayChungNhanModel: giayChungNhanModel,
                     ThuaDatModel: firstThuaDat,
                     TaiSan: firstTaiSan
