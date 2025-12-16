@@ -155,39 +155,40 @@ jobs:
           cat > release-notes.md << 'EOF'
           ## 🎉 VBDLIS Tools v$VERSION
 
-          ### 📦 Downloads
+          ### 📦 Tải về
 
           #### Windows
-          - **VbdlisTools-$VERSION-Setup.zip** - Installer cho Windows (giải nén và chạy Setup.exe)
-          - Hỗ trợ auto-update qua Velopack
+          - **VbdlisTools-$VERSION-Setup.zip** - Bộ cài đặt cho Windows (giải nén và chạy Setup.exe)
+          - Hỗ trợ tự động cập nhật qua Velopack
           - **Lưu ý:** Tải file ZIP để tránh cảnh báo của trình duyệt
 
-          ### 🚀 Installation
+          ### 🚀 Cài đặt
 
           **Windows:**
           1. Tải file `VbdlisTools-$VERSION-Setup.zip`
-          2. Giải nén ZIP file
+          2. Giải nén file ZIP
           3. Chạy `VbdlisTools-$VERSION-Setup.exe`
-          4. Ứng dụng tự động update khi có phiên bản mới
+          4. Ứng dụng sẽ tự động cập nhật khi có phiên bản mới
 
-          ### ⚠️ Important Notes
+          ### ⚠️ Lưu ý quan trọng
 
-          - **Playwright Browsers**:
+          - **Trình duyệt Playwright**:
             - Lần chạy đầu tiên, ứng dụng sẽ tải các trình duyệt Playwright cần thiết (khoảng 200MB)
             - Vui lòng đảm bảo kết nối internet ổn định trong lần chạy đầu tiên
-          - **Auto-Update**: Ứng dụng tự động kiểm tra và cập nhật phiên bản mới
-          - **Minimum Requirements**:
-            - Windows: Windows 10 64-bit or later
-            - ~200MB disk space (bao gồm Playwright browsers)
+          - **Tự động cập nhật**: Ứng dụng tự động kiểm tra và cập nhật phiên bản mới
+          - **Yêu cầu tối thiểu**:
+            - Windows: Windows 10 64-bit trở lên
+            - ~200MB dung lượng ổ đĩa (bao gồm trình duyệt Playwright)
 
-          ### 🐛 Bug Fixes & Improvements
+          ### 🐛 Sửa lỗi và Cải tiến
 
           - Cải thiện hiệu suất
           - Sửa lỗi và tối ưu hóa
+          - Các cải tiến nhỏ khác
 
           ---
 
-          **Full Changelog**: https://github.com/${{ github.repository }}/compare/v1.0.0...v$VERSION
+          **Nhật ký thay đổi đầy đủ**: https://github.com/${{ github.repository }}/compare/v1.0.0...v$VERSION
           EOF
 
           # Replace $VERSION with actual version
