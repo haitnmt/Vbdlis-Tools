@@ -161,9 +161,9 @@ Write-Host ""
 Write-Host "✅ Release tag created successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "📺 GitHub Actions will now:" -ForegroundColor Cyan
-Write-Host "   1. Build Windows ONLY with LOCKED version: $Version" -ForegroundColor White
+Write-Host "   1. Build Windows + macOS (Apple Silicon) with LOCKED version: $Version" -ForegroundColor White
 Write-Host "   2. Use version from version.json (NO auto-increment)" -ForegroundColor Yellow
-Write-Host "   3. Create GitHub Release with Windows artifacts" -ForegroundColor White
+Write-Host "   3. Create GitHub Release with Windows + macOS artifacts" -ForegroundColor White
 Write-Host ""
 Write-Host "🔗 Check progress at:" -ForegroundColor Cyan
 Write-Host "   https://github.com/$RepoPath/actions" -ForegroundColor White
@@ -174,10 +174,11 @@ Write-Host "💡 Workflow:" -ForegroundColor Cyan
 Write-Host "   Local build (.\build-local.ps1 or ./build-local-macos.sh)" -ForegroundColor White
 Write-Host "   → Auto-increments version → Updates version.json" -ForegroundColor White
 Write-Host "   GitHub Actions (.\create-release.ps1)" -ForegroundColor White
-Write-Host "   → Uses LOCKED version from version.json → Builds Windows ONLY" -ForegroundColor White
+Write-Host "   → Uses LOCKED version from version.json → Builds Windows + macOS" -ForegroundColor White
 Write-Host ""
 Write-Host "📝 Note:" -ForegroundColor Yellow
-Write-Host "   - macOS builds should be done locally and manually uploaded" -ForegroundColor White
-Write-Host "   - Only Windows builds on GitHub Actions" -ForegroundColor White
+Write-Host "   - Windows: Built on GitHub Actions (signed if certificates configured)" -ForegroundColor White
+Write-Host "   - macOS: Built on GitHub Actions for Apple Silicon (arm64 only)" -ForegroundColor White
+Write-Host "   - macOS will be unsigned unless you configure code signing secrets" -ForegroundColor White
 Write-Host ""
 Write-Host "🎉 Done!" -ForegroundColor Green
