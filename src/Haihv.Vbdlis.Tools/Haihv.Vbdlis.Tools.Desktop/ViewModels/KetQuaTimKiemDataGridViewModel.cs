@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Haihv.Vbdlis.Tools.Desktop.Extensions;
 using Haihv.Vbdlis.Tools.Desktop.Models;
+using Haihv.Vbdlis.Tools.Desktop.Models.Vbdlis;
 using OfficeOpenXml;
 
 namespace Haihv.Vbdlis.Tools.Desktop.ViewModels;
@@ -18,10 +19,10 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels;
 public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
 {
     [ObservableProperty]
-    private ObservableCollection<KetQuaTimKiemModel> _ketQuaTimKiemList = [];
+    private ObservableCollection<KetQuaTimKiem> _ketQuaTimKiemList = [];
 
     [ObservableProperty]
-    private KetQuaTimKiemModel? _selectedItem;
+    private KetQuaTimKiem? _selectedItem;
 
     [ObservableProperty]
     private string? _statusMessage;
@@ -30,7 +31,7 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
     private bool _isExporting;
 
     private bool _isUpdatingCollection;
-    private List<KetQuaTimKiemModel>? _pendingModels;
+    private List<KetQuaTimKiem>? _pendingModels;
     private string? _pendingStatusMessage;
 
     public KetQuaTimKiemDataGridViewModel()
@@ -54,7 +55,7 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
         UpdateCollectionOnUiThread(models, $"Tìm thấy {models.Count} kết quả");
     }
 
-    private void UpdateCollectionOnUiThread(IReadOnlyList<KetQuaTimKiemModel> models, string statusMessage)
+    private void UpdateCollectionOnUiThread(IReadOnlyList<KetQuaTimKiem> models, string statusMessage)
     {
         void ApplyUpdates()
         {
@@ -70,7 +71,7 @@ public partial class KetQuaTimKiemDataGridViewModel : ObservableObject
             try
             {
                 // Replace the entire collection to avoid triggering multiple change notifications
-                var newList = new ObservableCollection<KetQuaTimKiemModel>(models);
+                var newList = new ObservableCollection<KetQuaTimKiem>(models);
                 KetQuaTimKiemList = newList;
                 SelectedItem = null;
                 StatusMessage = statusMessage;

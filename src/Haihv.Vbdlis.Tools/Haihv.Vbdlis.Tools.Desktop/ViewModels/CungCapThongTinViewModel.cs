@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Haihv.Tools.Hsq.Helpers;
 using Haihv.Vbdlis.Tools.Desktop.Models;
+using Haihv.Vbdlis.Tools.Desktop.Models.Vbdlis;
 using Haihv.Vbdlis.Tools.Desktop.Services.Vbdlis;
 using Haihv.Vbdlis.Tools.Desktop.Views;
 using Serilog;

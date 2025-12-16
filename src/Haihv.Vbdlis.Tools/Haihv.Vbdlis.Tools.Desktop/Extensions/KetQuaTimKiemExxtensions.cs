@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Haihv.Vbdlis.Tools.Desktop.Models;
+using Haihv.Vbdlis.Tools.Desktop.Models.Vbdlis;
 using Haihv.Vbdlis.Tools.Desktop.ViewModels;
 
 namespace Haihv.Vbdlis.Tools.Desktop.Extensions;
@@ -40,7 +41,7 @@ public static class KetQuaTimKiemExxtensions
     private static void ProcessThuaDatFromLienKet(
         List<LienKetTaiSanThuaDatDto>? listLienKet,
         HashSet<string> uniqueThuaDat,
-        List<ThuaDatModel> allThuaDat)
+        List<ThuaDat> allThuaDat)
     {
         if (listLienKet == null || listLienKet.Count == 0) return;
 
@@ -95,7 +96,7 @@ public static class KetQuaTimKiemExxtensions
                     })
                     .ToList();
 
-                var thuaDatModel = new ThuaDatModel(
+                var thuaDatModel = new ThuaDat(
                     xaId: thuaDat.XaId,
                     soToBanDo: soToBanDo,
                     soThuaDat: soThuaDat,
@@ -113,9 +114,9 @@ public static class KetQuaTimKiemExxtensions
 
     extension(AdvancedSearchGiayChungNhanResponse giayChungNhanResponse)
     {
-        public List<KetQuaTimKiemModel> ToKetQuaTimKiemModels()
+        public List<KetQuaTimKiem> ToKetQuaTimKiemModels()
         {
-            var results = new List<KetQuaTimKiemModel>();
+            var results = new List<KetQuaTimKiem>();
 
             if (giayChungNhanResponse?.Data == null || giayChungNhanResponse.Data.Count == 0)
             {
@@ -132,7 +133,7 @@ public static class KetQuaTimKiemExxtensions
                 // Lấy thông tin Giấy chứng nhận
                 var giayChungNhan = item.GiayChungNhan;
 
-                var giayChungNhanModel = new GiayChungNhanModel(
+                var giayChungNhanModel = new GiayChungNhan(
                     id: giayChungNhan?.Id ?? "",
                     soPhatHanh: giayChungNhan?.SoPhatHanh ?? "",
                     soVaoSo: giayChungNhan?.SoVaoSo ?? "",
@@ -143,7 +144,7 @@ public static class KetQuaTimKiemExxtensions
                 var listDangKyQuyen = giayChungNhan?.ListDangKyQuyen ?? [];
 
                 // Thu thập tất cả chủ sử dụng (bỏ trùng theo ID)
-                var allChuSuDung = new List<ChuSuDungModel>();
+                var allChuSuDung = new List<ChuSuDung>();
 
                 // Thu thập tất cả CaNhan (bỏ trùng theo CaNhanId)
                 var allCaNhan = listDangKyQuyen
@@ -154,7 +155,7 @@ public static class KetQuaTimKiemExxtensions
 
                 foreach (var caNhan in allCaNhan)
                 {
-                    allChuSuDung.Add(new ChuSuDungModel { CaNhan = caNhan });
+                    allChuSuDung.Add(new ChuSuDung { CaNhan = caNhan });
                 }
 
                 // Thu thập tất cả VoChong (bỏ trùng theo VoChongId)
@@ -166,7 +167,7 @@ public static class KetQuaTimKiemExxtensions
 
                 foreach (var voChong in allVoChong)
                 {
-                    allChuSuDung.Add(new ChuSuDungModel { VoChong = voChong });
+                    allChuSuDung.Add(new ChuSuDung { VoChong = voChong });
                 }
 
                 // Thu thập tất cả HoGiaDinh (bỏ trùng theo HoGiaDinhId)
@@ -178,7 +179,7 @@ public static class KetQuaTimKiemExxtensions
 
                 foreach (var hoGiaDinh in allHoGiaDinh)
                 {
-                    allChuSuDung.Add(new ChuSuDungModel { HoGiaDinh = hoGiaDinh });
+                    allChuSuDung.Add(new ChuSuDung { HoGiaDinh = hoGiaDinh });
                 }
 
                 // Thu thập tất cả ToChuc (bỏ trùng theo ToChucId)
@@ -190,7 +191,7 @@ public static class KetQuaTimKiemExxtensions
 
                 foreach (var toChuc in allToChuc)
                 {
-                    allChuSuDung.Add(new ChuSuDungModel { ToChuc = toChuc });
+                    allChuSuDung.Add(new ChuSuDung { ToChuc = toChuc });
                 }
 
                 // Thu thập CongDong (bỏ trùng)
@@ -202,7 +203,7 @@ public static class KetQuaTimKiemExxtensions
 
                 foreach (var congDong in allCongDong)
                 {
-                    allChuSuDung.Add(new ChuSuDungModel { CongDong = congDong });
+                    allChuSuDung.Add(new ChuSuDung { CongDong = congDong });
                 }
 
                 // Thu thập NhomNguoi (bỏ trùng)
@@ -214,13 +215,13 @@ public static class KetQuaTimKiemExxtensions
 
                 foreach (var nhomNguoi in allNhomNguoi)
                 {
-                    allChuSuDung.Add(new ChuSuDungModel { NhomNguoi = nhomNguoi });
+                    allChuSuDung.Add(new ChuSuDung { NhomNguoi = nhomNguoi });
                 }
 
                 // Nếu không có chủ sử dụng nào, tạo một ChuSuDungModel trống
                 if (allChuSuDung.Count == 0)
                 {
-                    allChuSuDung.Add(new ChuSuDungModel());
+                    allChuSuDung.Add(new ChuSuDung());
                 }
 
                 // Tạo HashSet để theo dõi và loại bỏ trùng lặp
@@ -228,8 +229,8 @@ public static class KetQuaTimKiemExxtensions
                 var uniqueTaiSan = new HashSet<string>();
 
                 // Tạo danh sách để lưu tất cả thửa đất và tài sản
-                var allThuaDat = new List<ThuaDatModel>();
-                var allTaiSan = new List<TaiSanModel>();
+                var allThuaDat = new List<ThuaDat>();
+                var allTaiSan = new List<TaiSan>();
 
                 foreach (var dangky in listDangKyQuyen)
                 {
@@ -285,7 +286,7 @@ public static class KetQuaTimKiemExxtensions
                                 })
                                 .ToList();
 
-                            var thuaDatModel = new ThuaDatModel(
+                            var thuaDatModel = new ThuaDat(
                                 xaId: xaId,
                                 soToBanDo: soToBanDo,
                                 soThuaDat: soThuaDat,
@@ -318,7 +319,7 @@ public static class KetQuaTimKiemExxtensions
                         {
                             uniqueTaiSan.Add(taiSanKey);
 
-                            var taiSanModel = new TaiSanModel(
+                            var taiSanModel = new TaiSan(
                                 tenTaiSan: tenTaiSan,
                                 dienTichXayDung: dienTichXayDung,
                                 dienTichSuDung: dienTichSuDung,
@@ -361,7 +362,7 @@ public static class KetQuaTimKiemExxtensions
                         {
                             uniqueTaiSan.Add(taiSanKey);
 
-                            var taiSanModel = new TaiSanModel(
+                            var taiSanModel = new TaiSan(
                                 tenTaiSan: tenTaiSan,
                                 dienTichXayDung: dienTichXayDung,
                                 dienTichSuDung: dienTichSuDung,
@@ -388,7 +389,7 @@ public static class KetQuaTimKiemExxtensions
                 }
 
                 // Tạo một KetQuaTimKiemModel duy nhất với tất cả chủ sử dụng, thửa đất và tài sản
-                results.Add(new KetQuaTimKiemModel(
+                results.Add(new KetQuaTimKiem(
                     ListChuSuDung: allChuSuDung,
                     GiayChungNhanModel: giayChungNhanModel,
                     ListThuaDat: allThuaDat,

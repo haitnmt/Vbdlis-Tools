@@ -1,5 +1,5 @@
 using Avalonia.Controls;
-using Haihv.Vbdlis.Tools.Desktop.Models;
+using Haihv.Vbdlis.Tools.Desktop.Models.Vbdlis;
 using Haihv.Vbdlis.Tools.Desktop.ViewModels;
 
 namespace Haihv.Vbdlis.Tools.Desktop;
