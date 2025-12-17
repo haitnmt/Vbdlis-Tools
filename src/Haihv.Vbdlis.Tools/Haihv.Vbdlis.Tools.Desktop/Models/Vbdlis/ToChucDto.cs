@@ -17,7 +17,7 @@ public class ToChucDto
     [JsonPropertyName("ngayQuyetDinh")] public string? NgayQuyetDinh { get; set; }
     [JsonPropertyName("maDoanhNghiep")] public string? MaDoanhNghiep { get; set; }
     [JsonPropertyName("maSoThue")] public string? MaSoThue { get; set; }
-    [JsonPropertyName("loaiToChucId")] public int? LoaiToChucId { get; set; }
+    [JsonPropertyName("loaiToChucId")] public string? LoaiToChucId { get; set; }
     [JsonPropertyName("xaId")] public int? XaId { get; set; }
     [JsonPropertyName("diaChi")] public string? DiaChi { get; set; }
     [JsonPropertyName("version")] public int? Version { get; set; }

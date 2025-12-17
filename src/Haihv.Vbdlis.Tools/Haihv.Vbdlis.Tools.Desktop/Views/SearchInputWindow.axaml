@@ -12,14 +12,6 @@
     WindowStartupLocation="CenterOwner"
     mc:Ignorable="d">
     <Grid Margin="20" RowDefinitions="Auto,*,Auto">
-        <!--  Prompt  -->
-        <TextBlock
-            Grid.Row="0"
-            Margin="0,0,0,10"
-            FontSize="14"
-            Text="{Binding Prompt}"
-            TextWrapping="Wrap" />
-
         <!--  Input TextBox  -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <Grid RowDefinitions="*,Auto">
@@ -47,15 +39,15 @@
             Spacing="10">
             <Button
                 Width="120"
+                HorizontalContentAlignment="Center"
                 Click="OnSearchClick"
                 Content="🔍 Tìm kiếm"
-                HorizontalContentAlignment="Center"
                 IsDefault="True" />
             <Button
                 Width="120"
+                HorizontalContentAlignment="Center"
                 Click="OnCancelClick"
                 Content="❌ Bỏ qua"
-                HorizontalContentAlignment="Center"
                 IsCancel="True" />
         </StackPanel>
     </Grid>

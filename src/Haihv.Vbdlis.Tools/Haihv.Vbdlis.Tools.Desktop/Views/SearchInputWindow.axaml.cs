@@ -6,7 +6,6 @@ namespace Haihv.Vbdlis.Tools.Desktop.Views;
 
 public partial class SearchInputWindow : Window
 {
-    public string Prompt { get; set; } = string.Empty;
     public string Input { get; set; } = string.Empty;
     public bool IsConfirmed { get; private set; }
 
@@ -16,10 +15,9 @@ public partial class SearchInputWindow : Window
         DataContext = this;
     }
 
-    public SearchInputWindow(string title, string prompt) : this()
+    public SearchInputWindow(string title) : this()
     {
         Title = title;  // Use base Window.Title property directly
-        Prompt = prompt;
     }
 
     private void OnSearchClick(object? sender, RoutedEventArgs e)

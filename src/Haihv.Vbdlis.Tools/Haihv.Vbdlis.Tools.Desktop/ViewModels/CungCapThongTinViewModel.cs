@@ -157,7 +157,7 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
         }
 
         Log.Information("Showing search input dialog");
-        var dialog = new SearchInputWindow("Tìm kiếm theo Số Giấy Tờ", "Nhập số giấy tờ (mỗi dòng hoặc phân cách bằng ;):");
+        var dialog = new SearchInputWindow("Tìm kiếm theo Số Giấy Tờ");
         var result = await dialog.ShowDialog(mainWindow);
 
         Log.Information("Dialog closed. IsConfirmed: {IsConfirmed}, Input: {Input}", result.IsConfirmed, result.Input);
@@ -252,7 +252,7 @@ public partial class CungCapThongTinViewModel(CungCapThongTinGiayChungNhanServic
         var mainWindow = GetMainWindow();
         if (mainWindow == null) return;
 
-        var dialog = new SearchInputWindow("Tìm kiếm theo Số Phát Hành", "Nhập số phát hành (mỗi dòng hoặc phân cách bằng ;):");
+        var dialog = new SearchInputWindow("Tìm kiếm theo Số Phát Hành");
         var (IsConfirmed, Input) = await dialog.ShowDialog(mainWindow);
 
         if (IsConfirmed && !string.IsNullOrWhiteSpace(Input))
