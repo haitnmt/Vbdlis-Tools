@@ -152,8 +152,27 @@ jobs:
         id: release-notes
         run: |
           VERSION="${{ needs.prepare-version.outputs.version }}"
+          TAG_NAME="${{ needs.prepare-version.outputs.tag-name }}"
+
+          # Find the previous tag (excluding current tag) to build a valid compare URL.
+          # If this is the first tag, fall back to the commits page for the current tag.
+          PREV_TAG=$(git tag --list "v*" --sort=-creatordate | grep -v "^${TAG_NAME}$" | head -n 1 || true)
+          if [ -n "$PREV_TAG" ]; then
+            CHANGELOG_URL="https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${TAG_NAME}"
+          else
+            CHANGELOG_URL="https://github.com/${{ github.repository }}/commits/${TAG_NAME}"
+          fi
+
           cat > release-notes.md << 'EOF'
           ## 🎉 VBDLIS Tools v$VERSION
+
+          <!-- APP_UPDATE_NOTES_START -->
+          ### ✨ Có gì mới trong phiên bản này?
+          - Cải thiện hiệu suất tìm kiếm
+          - Sửa lỗi giao diện trên Windows 11
+          - Thêm tính năng lưu lịch sử tìm kiếm
+          - Tối ưu hóa tốc độ khởi động ứng dụng
+          <!-- APP_UPDATE_NOTES_END -->
 
           ### 📦 Tải về
 
@@ -179,20 +198,16 @@ jobs:
           - **Yêu cầu tối thiểu**:
             - Windows: Windows 10 64-bit trở lên
             - ~200MB dung lượng ổ đĩa (bao gồm trình duyệt Playwright)
-
-          ### 🐛 Sửa lỗi và Cải tiến
-
-          - Cải thiện hiệu suất
-          - Sửa lỗi và tối ưu hóa
-          - Các cải tiến nhỏ khác
-
+            
           ---
 
-          **Nhật ký thay đổi đầy đủ**: https://github.com/${{ github.repository }}/compare/v1.0.0...v$VERSION
+          **Nhật ký thay đổi đầy đủ**: $CHANGELOG_URL
           EOF
 
           # Replace $VERSION with actual version
           sed -i "s/\$VERSION/$VERSION/g" release-notes.md
+          # Replace changelog URL placeholder
+          sed -i "s|\$CHANGELOG_URL|$CHANGELOG_URL|g" release-notes.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

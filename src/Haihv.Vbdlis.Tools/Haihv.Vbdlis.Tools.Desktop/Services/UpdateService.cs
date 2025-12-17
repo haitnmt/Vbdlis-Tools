@@ -1,6 +1,8 @@
 using System;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Serilog;
 using Velopack;
@@ -76,6 +78,67 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 _logger.Warning(ex, "Failed to initialize Velopack UpdateManager. Updates will be disabled.");
                 _updateManager = null;
             }
+        }
+
+        /// <summary>
+        /// Fetches release notes from GitHub API
+        /// </summary>
+        private async Task<string> GetLatestReleaseNotesAsync()
+        {
+            try
+            {
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Vbdlis-Tools-UpdateChecker");
+
+                var apiUrl = $"https://api.github.com/repos/{GitHubRepoOwner}/{GitHubRepoName}/releases/latest";
+                _logger.Information("[UPDATE] Fetching release notes from: {ApiUrl}", apiUrl);
+
+                var response = await client.GetStringAsync(apiUrl);
+                var jsonDoc = JsonDocument.Parse(response);
+
+                if (jsonDoc.RootElement.TryGetProperty("body", out var bodyElement))
+                {
+                    var fullReleaseNotes = bodyElement.GetString() ?? string.Empty;
+                    _logger.Information("[UPDATE] Release notes fetched successfully ({Length} chars)", fullReleaseNotes.Length);
+
+                    // Extract only the APP_UPDATE_NOTES section (for in-app display)
+                    var releaseNotes = ExtractAppUpdateNotes(fullReleaseNotes);
+                    return releaseNotes;
+                }
+
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning(ex, "[UPDATE] Failed to fetch release notes from GitHub API");
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Extracts only the section between APP_UPDATE_NOTES_START and APP_UPDATE_NOTES_END markers
+        /// </summary>
+        private string ExtractAppUpdateNotes(string fullReleaseNotes)
+        {
+            const string startMarker = "<!-- APP_UPDATE_NOTES_START -->";
+            const string endMarker = "<!-- APP_UPDATE_NOTES_END -->";
+
+            var startIndex = fullReleaseNotes.IndexOf(startMarker);
+            var endIndex = fullReleaseNotes.IndexOf(endMarker);
+
+            if (startIndex >= 0 && endIndex > startIndex)
+            {
+                startIndex += startMarker.Length;
+                var extracted = fullReleaseNotes.Substring(startIndex, endIndex - startIndex).Trim();
+                _logger.Information("[UPDATE] Extracted app update notes ({Length} chars)", extracted.Length);
+                return extracted;
+            }
+
+            // Fallback: Return first 500 chars if markers not found
+            _logger.Warning("[UPDATE] APP_UPDATE_NOTES markers not found, using first 500 chars");
+            return fullReleaseNotes.Length > 500
+                ? fullReleaseNotes.Substring(0, 500) + "..."
+                : fullReleaseNotes;
         }
 
 
@@ -182,6 +245,9 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 _logger.Information("[UPDATE] Tìm thấy bản cập nhật: {CurrentVersion} → {NewVersion} (~{SizeMB:N1} MB)",
                     CurrentVersion, newVersion, sizeMB);
 
+                // Fetch release notes from GitHub
+                var releaseNotes = await GetLatestReleaseNotesAsync();
+
                 // Cache the Velopack UpdateInfo for DownloadAndInstallUpdateAsync
                 _cachedVelopackUpdateInfo = updateInfo;
 
@@ -189,7 +255,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 {
                     Version = newVersion,
                     DownloadUrl = "", // Velopack handles download internally
-                    ReleaseNotes = "", // Could be fetched from GitHub API separately if needed
+                    ReleaseNotes = releaseNotes,
                     PublishedAt = DateTime.Now, // Velopack doesn't provide this
                     FileSize = updateInfo.TargetFullRelease.Size,
                     IsRequired = false
