@@ -141,7 +141,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         /// <summary>
         /// Ensures Playwright browsers exist; will run "playwright install chromium" if missing.
         /// </summary>
-        public async Task<bool> EnsureBrowsersInstalledAsync(Action<string>? onStatusChange = null)
+        public async Task<bool> EnsureBrowsersInstalledAsync(Action<string>? onStatusChange = null,
+            bool showTerminalWindow = false)
         {
             if (IsBrowsersInstalled())
             {
@@ -170,7 +171,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     installTargetPath);
                 onStatusChange?.Invoke("Đang tải và cài đặt Playwright (Chromium)...");
                 // Try bundled scripts first (pwsh/bash), then dotnet CLI, then in-process CLI.
-                var installed = await RunPlaywrightInstallScriptAsync(installTargetPath, onStatusChange);
+                var installed = await RunPlaywrightInstallScriptAsync(installTargetPath, onStatusChange,
+                    showTerminalWindow);
                 var hasBrowsersAfterScript = IsBrowsersInstalled();
 
                 if (!installed || !hasBrowsersAfterScript)
@@ -185,7 +187,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                         _logger.Information("Bundled installer failed or unavailable, trying dotnet CLI fallback...");
                     }
 
-                    var dotnetInstalled = await RunPlaywrightDotnetCliAsync(installTargetPath, onStatusChange);
+                    var dotnetInstalled =
+                        await RunPlaywrightDotnetCliAsync(installTargetPath, onStatusChange, showTerminalWindow);
                     var hasBrowsersAfterDotnet = IsBrowsersInstalled();
 
                     if (!dotnetInstalled || !hasBrowsersAfterDotnet)
@@ -218,7 +221,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         }
 
         private async Task<bool> RunPlaywrightDotnetCliAsync(string installTargetPath,
-            Action<string>? onStatusChange = null)
+            Action<string>? onStatusChange = null, bool showTerminalWindow = false)
         {
             var appDir = AppDomain.CurrentDomain.BaseDirectory;
             var playwrightDll = Path.Combine(appDir, "Microsoft.Playwright.dll");
@@ -235,6 +238,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
 
             var args = $"\"{playwrightDll}\" install chromium";
             var success = await RunProcessAsync("dotnet", args, appDir, installTargetPath, onStatusChange,
+                showTerminalWindow,
                 TimeSpan.FromMinutes(7));
 
             if (success)
@@ -283,7 +287,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         }
 
         private async Task<bool> RunPlaywrightInstallScriptAsync(string installTargetPath,
-            Action<string>? onStatusChange = null)
+            Action<string>? onStatusChange = null, bool showTerminalWindow = false)
         {
             var appDir = AppDomain.CurrentDomain.BaseDirectory;
             var psScript = Path.Combine(appDir, "playwright.ps1");
@@ -310,6 +314,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             {
                 onStatusChange?.Invoke(statusMessage);
                 if (!await RunProcessAsync(exe, args, appDir, installTargetPath, onStatusChange,
+                        showTerminalWindow,
                         TimeSpan.FromMinutes(5)))
                 {
                     return false;
@@ -366,7 +371,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             return false;
         }
 
-        private IEnumerable<string> GetWindowsPowerShellCandidates()
+        private static IEnumerable<string> GetWindowsPowerShellCandidates()
         {
             // Ensure we try 64-bit PowerShell even when the app is 32-bit (use SysNative).
             var systemRoot = Environment.GetEnvironmentVariable("SystemRoot") ?? "C:\\Windows";
@@ -402,7 +407,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         }
 
         private async Task<bool> RunProcessAsync(string fileName, string arguments, string workingDir,
-            string? browserPath = null, Action<string>? onStatusChange = null, TimeSpan? timeout = null)
+            string? browserPath = null, Action<string>? onStatusChange = null, bool showTerminalWindow = false,
+            TimeSpan? timeout = null)
         {
             try
             {
@@ -413,10 +419,10 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     FileName = fileName,
                     Arguments = arguments,
                     WorkingDirectory = workingDir,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = !showTerminalWindow,
+                    RedirectStandardOutput = !showTerminalWindow,
+                    RedirectStandardError = !showTerminalWindow
                 };
 
                 if (!string.IsNullOrWhiteSpace(browserPath))
@@ -428,10 +434,22 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 process.StartInfo = psi;
                 process.Start();
 
-                var stdoutTask = process.StandardOutput.ReadToEndAsync();
-                var stderrTask = process.StandardError.ReadToEndAsync();
+                Task<string>? stdoutTask = null;
+                Task<string>? stderrTask = null;
                 var waitTask = process.WaitForExitAsync();
-                var combined = Task.WhenAll(stdoutTask, stderrTask, waitTask);
+                Task combined;
+
+                if (showTerminalWindow)
+                {
+                    combined = waitTask;
+                    onStatusChange?.Invoke("Đang chạy trình cài đặt trong cửa sổ terminal...");
+                }
+                else
+                {
+                    stdoutTask = process.StandardOutput.ReadToEndAsync();
+                    stderrTask = process.StandardError.ReadToEndAsync();
+                    combined = Task.WhenAll(stdoutTask, stderrTask, waitTask);
+                }
 
                 var completed = await Task.WhenAny(combined, Task.Delay(timeout.Value));
                 if (completed != combined)
@@ -445,17 +463,20 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                         // ignore kill failures
                     }
 
-                    await Task.WhenAny(Task.WhenAll(stdoutTask, stderrTask), Task.Delay(TimeSpan.FromSeconds(5)));
-                    var stdoutTimeout = SafeRead(stdoutTask);
-                    var stderrTimeout = SafeRead(stderrTask);
-                    if (!string.IsNullOrWhiteSpace(stdoutTimeout))
+                    if (!showTerminalWindow && stdoutTask != null && stderrTask != null)
                     {
-                        _logger.Information("playwright install stdout (timeout): {Stdout}", stdoutTimeout);
-                    }
+                        await Task.WhenAny(Task.WhenAll(stdoutTask, stderrTask), Task.Delay(TimeSpan.FromSeconds(5)));
+                        var stdoutTimeout = SafeRead(stdoutTask);
+                        var stderrTimeout = SafeRead(stderrTask);
+                        if (!string.IsNullOrWhiteSpace(stdoutTimeout))
+                        {
+                            _logger.Information("playwright install stdout (timeout): {Stdout}", stdoutTimeout);
+                        }
 
-                    if (!string.IsNullOrWhiteSpace(stderrTimeout))
-                    {
-                        _logger.Warning("playwright install stderr (timeout): {Stderr}", stderrTimeout);
+                        if (!string.IsNullOrWhiteSpace(stderrTimeout))
+                        {
+                            _logger.Warning("playwright install stderr (timeout): {Stderr}", stderrTimeout);
+                        }
                     }
 
                     _logger.Warning("playwright install via {Exe} timed out after {Timeout}.", fileName, timeout);
@@ -464,19 +485,22 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 }
 
                 var exitCode = process.ExitCode;
-                var stdout = stdoutTask.Result;
-                var stderr = stderrTask.Result;
-
-                if (!string.IsNullOrWhiteSpace(stdout))
+                if (!showTerminalWindow && stdoutTask != null && stderrTask != null)
                 {
-                    onStatusChange?.Invoke(stdout);
-                    _logger.Information("playwright install stdout: {Stdout}", stdout);
-                }
+                    var stdout = stdoutTask.Result;
+                    var stderr = stderrTask.Result;
 
-                if (!string.IsNullOrWhiteSpace(stderr))
-                {
-                    onStatusChange?.Invoke(stderr);
-                    _logger.Information("playwright install stderr: {Stderr}", stderr);
+                    if (!string.IsNullOrWhiteSpace(stdout))
+                    {
+                        onStatusChange?.Invoke(stdout);
+                        _logger.Information("playwright install stdout: {Stdout}", stdout);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(stderr))
+                    {
+                        onStatusChange?.Invoke(stderr);
+                        _logger.Information("playwright install stderr: {Stderr}", stderr);
+                    }
                 }
 
                 if (exitCode == 0)

@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -207,10 +208,11 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             bool ready;
             try
             {
+                var showTerminalWindow = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
                 ready = await installer.EnsureBrowsersInstalledAsync(message =>
                 {
                     installWindow.UpdateStatus(message);
-                });
+                }, showTerminalWindow);
             }
             catch (Exception ex)
             {
