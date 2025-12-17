@@ -10,31 +10,21 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
 {
     public partial class LoginViewModel(IPlaywrightService? playwrightService = null) : ViewModelBase
     {
-        private readonly IPlaywrightService? _playwrightService = playwrightService;
+        [ObservableProperty] private string _server = string.Empty;
 
-        [ObservableProperty]
-        private string _server = string.Empty;
+        [ObservableProperty] private string _username = string.Empty;
 
-        [ObservableProperty]
-        private string _username = string.Empty;
+        [ObservableProperty] private string _password = string.Empty;
 
-        [ObservableProperty]
-        private string _password = string.Empty;
+        [ObservableProperty] private bool _isLoggingIn;
 
-        [ObservableProperty]
-        private bool _isLoggingIn;
+        [ObservableProperty] private string _errorMessage = string.Empty;
 
-        [ObservableProperty]
-        private string _errorMessage = string.Empty;
+        [ObservableProperty] private bool _rememberMe = true; // Default to true for convenience
 
-        [ObservableProperty]
-        private bool _rememberMe = true; // Default to true for convenience
+        [ObservableProperty] private bool _headlessBrowser; // Default to false (show browser)
 
-        [ObservableProperty]
-        private bool _headlessBrowser = false; // Default to false (show browser)
-
-        [ObservableProperty]
-        private string _loginStatusMessage = string.Empty;
+        [ObservableProperty] private string _loginStatusMessage = string.Empty;
 
         partial void OnIsLoggingInChanged(bool value)
         {
@@ -78,7 +68,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
                 }
 
                 // Use Playwright to login
-                if (_playwrightService != null)
+                if (playwrightService != null)
                 {
                     await PerformPlaywrightLoginAsync();
                 }
@@ -101,17 +91,17 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
 
         private async Task PerformPlaywrightLoginAsync()
         {
-            if (_playwrightService == null) return;
+            if (playwrightService == null) return;
 
             // Initialize Playwright browser (reuse existing context if available)
             UpdateLoginStatus("Đang khởi tạo phiên trình duyệt...");
-            await _playwrightService.InitializeAsync(headless: HeadlessBrowser);
+            await playwrightService.InitializeAsync(headless: HeadlessBrowser);
 
             // Get the default page (first page in context)
-            var pages = _playwrightService.Context?.Pages;
+            var pages = playwrightService.Context?.Pages;
 
             // Always use the first (default) page
-            var page = (pages == null || pages.Count == 0) ? await _playwrightService.NewPageAsync() : pages[0];
+            var page = (pages == null || pages.Count == 0) ? await playwrightService.NewPageAsync() : pages[0];
 
             // Navigate to server
             UpdateLoginStatus("Đang kết nối đến máy chủ...");
@@ -135,7 +125,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
                 {
                     // Wait for user profile element to appear
                     UpdateLoginStatus("Đang kiểm tra trạng thái đăng nhập...");
-                    await page.WaitForSelectorAsync("a.user-profile b", new PageWaitForSelectorOptions { Timeout = 15000 });
+                    await page.WaitForSelectorAsync("a.user-profile b",
+                        new PageWaitForSelectorOptions { Timeout = 15000 });
 
                     // Get the logged-in username from the page
                     var loggedInUsername = await page.InnerTextAsync("a.user-profile b");
@@ -171,7 +162,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
                         catch (Exception logoutEx)
                         {
                             Debug.WriteLine($"Logout failed: {logoutEx.Message}");
-                            ErrorMessage = $"Không thể đăng xuất người dùng '{loggedInUsername}'. Vui lòng đăng xuất thủ công trong trình duyệt.";
+                            ErrorMessage =
+                                $"Không thể đăng xuất người dùng '{loggedInUsername}'. Vui lòng đăng xuất thủ công trong trình duyệt.";
                         }
                     }
                 }
@@ -246,7 +238,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
 
         private void NotifyLoginSuccess()
         {
-            _playwrightService?.CacheLoginInfo(Server, Username, Password, HeadlessBrowser);
+            playwrightService?.CacheLoginInfo(Server, Username, Password, HeadlessBrowser);
 
             LoginSuccessful?.Invoke(this, new LoginEventArgs
             {

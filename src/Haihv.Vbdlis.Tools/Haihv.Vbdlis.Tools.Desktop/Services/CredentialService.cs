@@ -45,8 +45,9 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             {
                 var plainBytes = Encoding.UTF8.GetBytes(json);
                 // Use DPAPI to encrypt data for the current user
-                byte[] additionalEntropy = Encoding.UTF8.GetBytes("Haihv.Vbdlis.Tools.Entropy");
-                var encryptedBytes = ProtectedData.Protect(plainBytes, additionalEntropy, DataProtectionScope.CurrentUser);
+                var additionalEntropy = Encoding.UTF8.GetBytes("Haihv.Vbdlis.Tools.Entropy");
+                var encryptedBytes =
+                    ProtectedData.Protect(plainBytes, additionalEntropy, DataProtectionScope.CurrentUser);
                 var encryptedBase64 = Convert.ToBase64String(encryptedBytes);
                 await File.WriteAllTextAsync(_credentialsFilePath, encryptedBase64);
             }
@@ -75,20 +76,21 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 psi.ArgumentList.Add(AccountName);
 
                 using var process = Process.Start(psi)
-                    ?? throw new InvalidOperationException("Cannot start secret-tool process.");
+                                    ?? throw new InvalidOperationException("Cannot start secret-tool process.");
                 await process.StandardInput.WriteAsync(json);
                 process.StandardInput.Close();
-                process.WaitForExit();
+                await process.WaitForExitAsync();
 
                 if (process.ExitCode != 0)
                 {
-                    var error = process.StandardError.ReadToEnd();
+                    var error = await process.StandardError.ReadToEndAsync();
                     throw new Exception($"secret-tool exited with code {process.ExitCode}: {error}");
                 }
             }
             else
             {
-                throw new PlatformNotSupportedException("Credential storage is only supported on Windows, macOS, and Linux.");
+                throw new PlatformNotSupportedException(
+                    "Credential storage is only supported on Windows, macOS, and Linux.");
             }
         }
 
@@ -100,7 +102,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         {
             try
             {
-                string? json = null;
+                string? json;
 
                 if (OperatingSystem.IsWindows())
                 {
@@ -110,8 +112,9 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     if (string.IsNullOrWhiteSpace(encryptedBase64)) return null;
 
                     var encryptedBytes = Convert.FromBase64String(encryptedBase64);
-                    byte[] additionalEntropy = Encoding.UTF8.GetBytes("Haihv.Vbdlis.Tools.Entropy");
-                    var plainBytes = ProtectedData.Unprotect(encryptedBytes, additionalEntropy, DataProtectionScope.CurrentUser);
+                    var additionalEntropy = Encoding.UTF8.GetBytes("Haihv.Vbdlis.Tools.Entropy");
+                    var plainBytes = ProtectedData.Unprotect(encryptedBytes, additionalEntropy,
+                        DataProtectionScope.CurrentUser);
                     json = Encoding.UTF8.GetString(plainBytes);
                 }
                 else if (OperatingSystem.IsMacOS())
@@ -131,6 +134,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     // Thay vì ném lỗi, có thể return null nếu muốn không crash app
                     throw new PlatformNotSupportedException("Credential storage is not supported on this platform.");
                 }
+
                 return string.IsNullOrWhiteSpace(json)
                     ? null
                     : JsonSerializer.Deserialize<LoginSessionInfo>(json);

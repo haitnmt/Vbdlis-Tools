@@ -20,7 +20,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         /// <param name="updateInfo">Update information</param>
         /// <param name="progress">Progress callback (0-100)</param>
         /// <param name="beforeRestart">Optional callback executed after download completes but before restart</param>
-        Task<bool> DownloadAndInstallUpdateAsync(UpdateInfo updateInfo, Action<int>? progress = null, Func<Task>? beforeRestart = null);
+        Task<bool> DownloadAndInstallUpdateAsync(UpdateInfo updateInfo, Action<int>? progress = null,
+            Func<Task>? beforeRestart = null);
 
         /// <summary>
         /// Gets the current application version
@@ -33,11 +34,11 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
     /// </summary>
     public class UpdateInfo
     {
-        public string Version { get; set; } = string.Empty;
+        public string Version { get; init; } = string.Empty;
         public string DownloadUrl { get; set; } = string.Empty;
-        public string ReleaseNotes { get; set; } = string.Empty;
+        public string ReleaseNotes { get; init; } = string.Empty;
         public DateTime PublishedAt { get; set; }
-        public long FileSize { get; set; }
+        public long FileSize { get; init; }
         public bool IsRequired { get; set; }
     }
 }

@@ -31,7 +31,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
 
             // Get current version from assembly - use InformationalVersion (3-part) for Velopack compatibility
             var assembly = Assembly.GetExecutingAssembly();
-            var infoVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            var infoVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                ?.InformationalVersion;
             if (!string.IsNullOrEmpty(infoVersion))
             {
                 // Remove git commit hash if present (e.g., "1.0.25120911+01403dd..." -> "1.0.25120911")
@@ -67,7 +68,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 // Use GitHub as update source
                 var repoUrl = $"https://github.com/{GitHubRepoOwner}/{GitHubRepoName}";
                 _logger.Information("Initializing GithubSource với URL: {RepoUrl}", repoUrl);
-                _logger.Information("Velopack sẽ tìm RELEASES file tại: {Url}/releases/latest/download/RELEASES", repoUrl);
+                _logger.Information("Velopack sẽ tìm RELEASES file tại: {Url}/releases/latest/download/RELEASES",
+                    repoUrl);
 
                 var source = new GithubSource(repoUrl, null, false);
                 _updateManager = new UpdateManager(source);
@@ -99,7 +101,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 if (jsonDoc.RootElement.TryGetProperty("body", out var bodyElement))
                 {
                     var fullReleaseNotes = bodyElement.GetString() ?? string.Empty;
-                    _logger.Information("[UPDATE] Release notes fetched successfully ({Length} chars)", fullReleaseNotes.Length);
+                    _logger.Information("[UPDATE] Release notes fetched successfully ({Length} chars)",
+                        fullReleaseNotes.Length);
 
                     // Extract only the APP_UPDATE_NOTES section (for in-app display)
                     return ExtractAppUpdateNotes(fullReleaseNotes);
@@ -123,8 +126,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             const string startMarker = "<!-- APP_UPDATE_NOTES_START -->";
             const string endMarker = "<!-- APP_UPDATE_NOTES_END -->";
 
-            var startIndex = fullReleaseNotes.IndexOf(startMarker);
-            var endIndex = fullReleaseNotes.IndexOf(endMarker);
+            var startIndex = fullReleaseNotes.IndexOf(startMarker, StringComparison.Ordinal);
+            var endIndex = fullReleaseNotes.IndexOf(endMarker, StringComparison.Ordinal);
 
             if (startIndex >= 0 && endIndex > startIndex)
             {
@@ -162,7 +165,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
 
                 if (!isInstalled)
                 {
-                    _logger.Warning("[UPDATE] App đang chạy portable mode - Auto-update chỉ hoạt động khi cài qua installer");
+                    _logger.Warning(
+                        "[UPDATE] App đang chạy portable mode - Auto-update chỉ hoạt động khi cài qua installer");
                     return null;
                 }
 
@@ -180,18 +184,21 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     _logger.Warning(locEx, "[UPDATE] Không thể lấy thông tin app location");
                 }
 
-                _logger.Information("[UPDATE] Kết nối GitHub: https://github.com/{Owner}/{Repo}", GitHubRepoOwner, GitHubRepoName);
+                _logger.Information("[UPDATE] Kết nối GitHub: https://github.com/{Owner}/{Repo}", GitHubRepoOwner,
+                    GitHubRepoName);
                 _logger.Information("[UPDATE] Đang gọi _updateManager.CheckForUpdatesAsync()...");
 
-                Velopack.UpdateInfo? updateInfo = null;
+                Velopack.UpdateInfo? updateInfo;
                 try
                 {
                     updateInfo = await _updateManager.CheckForUpdatesAsync();
-                    _logger.Information("[UPDATE] CheckForUpdatesAsync() hoàn thành - Result: {IsNull}", updateInfo == null ? "NULL" : "NOT NULL");
+                    _logger.Information("[UPDATE] CheckForUpdatesAsync() hoàn thành - Result: {IsNull}",
+                        updateInfo == null ? "NULL" : "NOT NULL");
 
                     if (updateInfo != null)
                     {
-                        _logger.Information("[UPDATE] DEBUG - TargetFullRelease.Version: {Version}", updateInfo.TargetFullRelease.Version);
+                        _logger.Information("[UPDATE] DEBUG - TargetFullRelease.Version: {Version}",
+                            updateInfo.TargetFullRelease.Version);
                         _logger.Information("[UPDATE] DEBUG - Current app version: {CurrentVersion}", CurrentVersion);
                     }
                     else
@@ -203,7 +210,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                         _logger.Warning("[UPDATE] DEBUG - Current version: {CurrentVersion}", CurrentVersion);
                     }
                 }
-                catch (System.Net.Http.HttpRequestException httpEx)
+                catch (HttpRequestException httpEx)
                 {
                     _logger.Error(httpEx, "[UPDATE] HTTP Error - Không kết nối được GitHub");
                     _logger.Error("[UPDATE] StatusCode: {StatusCode}", httpEx.StatusCode);
@@ -212,6 +219,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     {
                         _logger.Error("[UPDATE] InnerException: {InnerMessage}", httpEx.InnerException.Message);
                     }
+
                     throw;
                 }
                 catch (TaskCanceledException timeoutEx)
@@ -230,20 +238,22 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                             veloEx.InnerException.GetType().Name,
                             veloEx.InnerException.Message);
                     }
+
                     throw;
                 }
 
                 if (updateInfo == null)
                 {
-                    _logger.Information("[UPDATE] Không có update (updateInfo == null) - Có thể đã là phiên bản mới nhất hoặc không tìm thấy RELEASES file");
+                    _logger.Information(
+                        "[UPDATE] Không có update (updateInfo == null) - Có thể đã là phiên bản mới nhất hoặc không tìm thấy RELEASES file");
                     return null;
                 }
 
                 var newVersion = updateInfo.TargetFullRelease.Version.ToString();
-                var sizeMB = updateInfo.TargetFullRelease.Size / 1024.0 / 1024.0;
+                var sizeMb = updateInfo.TargetFullRelease.Size / 1024.0 / 1024.0;
 
                 _logger.Information("[UPDATE] Tìm thấy bản cập nhật: {CurrentVersion} → {NewVersion} (~{SizeMB:N1} MB)",
-                    CurrentVersion, newVersion, sizeMB);
+                    CurrentVersion, newVersion, sizeMb);
 
                 // Fetch release notes from GitHub
                 var releaseNotes = await GetLatestReleaseNotesAsync();
@@ -272,7 +282,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         /// <summary>
         /// Downloads and installs the update using Velopack
         /// </summary>
-        public async Task<bool> DownloadAndInstallUpdateAsync(UpdateInfo updateInfo, Action<int>? progress = null, Func<Task>? beforeRestart = null)
+        public async Task<bool> DownloadAndInstallUpdateAsync(UpdateInfo updateInfo, Action<int>? progress = null,
+            Func<Task>? beforeRestart = null)
         {
             _logger.Information("[UPDATE] Bắt đầu tải cập nhật: {Version}", updateInfo.Version);
 
@@ -305,9 +316,9 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     }
                 }
 
-                var sizeMB = velopackUpdateInfo.TargetFullRelease.Size / 1024.0 / 1024.0;
+                var sizeMb = velopackUpdateInfo.TargetFullRelease.Size / 1024.0 / 1024.0;
                 _logger.Information("[UPDATE] Tải xuống: {Package} (~{SizeMB:N1} MB)",
-                    velopackUpdateInfo.TargetFullRelease.PackageId, sizeMB);
+                    velopackUpdateInfo.TargetFullRelease.PackageId, sizeMb);
 
                 // Download updates with progress callback
                 await _updateManager.DownloadUpdatesAsync(velopackUpdateInfo, (percent) =>
@@ -326,7 +337,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     }
                     catch (Exception cbEx)
                     {
-                        _logger.Warning(cbEx, "[UPDATE] Callback trước khi restart gặp lỗi, tiếp tục quá trình cập nhật");
+                        _logger.Warning(cbEx,
+                            "[UPDATE] Callback trước khi restart gặp lỗi, tiếp tục quá trình cập nhật");
                     }
                 }
 

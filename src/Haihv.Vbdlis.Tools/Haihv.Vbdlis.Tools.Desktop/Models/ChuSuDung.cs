@@ -8,19 +8,19 @@ namespace Haihv.Vbdlis.Tools.Desktop.Models;
 
 public class ChuSuDung
 {
-    public CaNhanDto? CaNhan { get; set; }
-    public VoChongDto? VoChong { get; set; }
-    public HoGiaDinhFullDto? HoGiaDinh { get; set; }
-    public ToChucDto? ToChuc { get; set; }
-    public string? CongDong { get; set; }
-    public string? NhomNguoi { get; set; }
+    public CaNhanDto? CaNhan { get; init; }
+    public VoChongDto? VoChong { get; init; }
+    public HoGiaDinhFullDto? HoGiaDinh { get; init; }
+    public ToChucDto? ToChuc { get; init; }
+    public string? CongDong { get; init; }
+    public string? NhomNguoi { get; init; }
 
-    private static string? FormatSoGiayTo(IEnumerable<GiayToTuyThanDto>? giayToList, bool showDashIfEmpty)
+    private static string? FormatSoGiayTo(IEnumerable<GiayToTuyThanDto>? giayToList, bool showDashIfEmpty = true)
     {
         if (giayToList == null)
             return showDashIfEmpty ? "(-)" : null;
-
-        var allNumbers = giayToList
+        var giayToTuyThanDtos = giayToList.ToList();
+        var allNumbers = giayToTuyThanDtos
             .Where(g => !string.IsNullOrWhiteSpace(g.SoGiayTo))
             .OrderByDescending(g => g.LaThongTinChinh == true)
             .Select(g => g.SoGiayTo!.Trim())
@@ -29,18 +29,19 @@ public class ChuSuDung
         if (allNumbers.Count == 0)
             return showDashIfEmpty ? "(-)" : null;
 
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var distinctNumbers = new List<string>();
-        foreach (var number in allNumbers)
-        {
-            if (seen.Add(number))
-                distinctNumbers.Add(number);
-        }
+        var distinctNumbers = allNumbers.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
         var first = distinctNumbers[0];
+        var loaiGiayTo = giayToTuyThanDtos
+            .FirstOrDefault(g =>
+                !string.IsNullOrWhiteSpace(g.SoGiayTo) &&
+                string.Equals(g.SoGiayTo!.Trim(), first, StringComparison.OrdinalIgnoreCase))
+            ?.LoaiGiayToTuyThan;
+        var label = loaiGiayTo?.MaLoaiGiayTo ?? loaiGiayTo?.TenLoaiGiayTo;
+        var firtText = string.IsNullOrWhiteSpace(label) ? $"Số giấy tờ: {first}" : $"{label}: {first}";
         return distinctNumbers.Count == 1
-            ? first
-            : first + string.Concat(distinctNumbers.Skip(1).Select(n => $"; ({n})"));
+            ? firtText
+            : firtText + string.Concat(distinctNumbers.Skip(1).Select(n => $"; ({n})"));
     }
 
     private static string? FormatSoGiayTo(IEnumerable<GiayToToChucDto>? giayToToChucList, bool showDashIfEmpty)
@@ -67,14 +68,11 @@ public class ChuSuDung
         if (grouped.Count == 0)
             return showDashIfEmpty ? "(-)" : null;
 
-        var parts = new List<string>();
-        foreach (var group in grouped)
-        {
-            var label = string.IsNullOrWhiteSpace(group.Key) ? "" : group.Key;
-            var numbers = FormatSoGiayToNumbers(group.Value.Select(g => g.SoGiayTo), showDashIfEmpty: false);
-            if (!string.IsNullOrWhiteSpace(numbers))
-                parts.Add($"{label}: {numbers}");
-        }
+        var parts = (from @group in grouped
+            let label = string.IsNullOrWhiteSpace(@group.Key) ? "Số giấy tờ:" : @group.Key
+            let numbers = FormatSoGiayToNumbers(@group.Value.Select(g => g.SoGiayTo), showDashIfEmpty: false)
+            where !string.IsNullOrWhiteSpace(numbers)
+            select $"{label}: {numbers}").ToList();
 
         if (parts.Count == 0)
             return showDashIfEmpty ? "(-)" : null;
@@ -85,41 +83,50 @@ public class ChuSuDung
     private static string? GetLoaiGiayToToChucText(GiayToToChucDto giayTo)
     {
         var value = giayTo.LoaiGiayToToChuc;
-        if (value == null)
-            return null;
-
-        if (value is string str)
-            return str;
-
-        if (value is JsonElement element)
+        switch (value)
         {
-            if (element.ValueKind == JsonValueKind.String)
+            case null:
+                break;
+            case string str:
+                return str;
+            case JsonElement { ValueKind: JsonValueKind.String } element:
                 return element.GetString();
-
-            if (element.ValueKind == JsonValueKind.Object)
+            case JsonElement element:
             {
-                foreach (var key in new[] { "tenLoaiGiayToToChuc", "TenLoaiGiayToToChuc", "tenLoaiGiayTo", "TenLoaiGiayTo", "ten", "Ten", "name", "Name", "title", "Title" })
+                if (element.ValueKind != JsonValueKind.Object) return null;
+                foreach (var key in new[]
+                         {
+                             "tenLoaiGiayToToChuc", "TenLoaiGiayToToChuc", "tenLoaiGiayTo", "TenLoaiGiayTo", "ten",
+                             "Ten", "name", "Name", "title", "Title"
+                         })
                 {
                     if (TryGetJsonString(element, key, out var text))
                         return text;
                 }
+
+                break;
             }
-
-            return null;
-        }
-
-        if (value is IDictionary<string, object?> dict)
-        {
-            foreach (var key in new[] { "tenLoaiGiayToToChuc", "TenLoaiGiayToToChuc", "tenLoaiGiayTo", "TenLoaiGiayTo", "ten", "Ten", "name", "Name", "title", "Title" })
+            case IDictionary<string, object?> dict:
             {
-                if (!dict.TryGetValue(key, out var raw) || raw == null)
-                    continue;
+                foreach (var key in new[]
+                         {
+                             "tenLoaiGiayToToChuc", "TenLoaiGiayToToChuc", "tenLoaiGiayTo", "TenLoaiGiayTo", "ten",
+                             "Ten", "name", "Name", "title", "Title"
+                         })
+                {
+                    if (!dict.TryGetValue(key, out var raw) || raw == null)
+                        continue;
 
-                if (raw is string text && !string.IsNullOrWhiteSpace(text))
-                    return text;
+                    switch (raw)
+                    {
+                        case string text when !string.IsNullOrWhiteSpace(text):
+                            return text;
+                        case JsonElement { ValueKind: JsonValueKind.String } rawElement:
+                            return rawElement.GetString();
+                    }
+                }
 
-                if (raw is JsonElement rawElement && rawElement.ValueKind == JsonValueKind.String)
-                    return rawElement.GetString();
+                break;
             }
         }
 
@@ -180,7 +187,8 @@ public class ChuSuDung
         var parts = new List<string>();
 
         if (CaNhan != null && !string.IsNullOrWhiteSpace(CaNhan.HoTen))
-            parts.Add($"{(includeTitle ? "Họ tên: " : "")}{OngBa(CaNhan.GioiTinh, capitalize: !includeTitle)} {CaNhan.HoTen}");
+            parts.Add(
+                $"{(includeTitle ? "Họ tên: " : "")}{OngBa(CaNhan.GioiTinh, capitalize: !includeTitle)} {CaNhan.HoTen}");
 
         if (VoChong != null)
         {
@@ -208,7 +216,7 @@ public class ChuSuDung
             if (!string.IsNullOrWhiteSpace(tenChuHo))
                 tenThanhVien.Add($"Chủ hộ {(HoGiaDinh.ChuHo?.GioiTinh == true ? "Ông" : "Bà")} {tenChuHo}");
 
-            if (HoGiaDinh.ListThanhVienHoGiaDinh != null && HoGiaDinh.ListThanhVienHoGiaDinh.Count > 0)
+            if (HoGiaDinh.ListThanhVienHoGiaDinh is { Count: > 0 })
             {
                 var tenCacThanhVien = HoGiaDinh.ListThanhVienHoGiaDinh
                     .Where(tv => !string.IsNullOrWhiteSpace(tv.HoTen))
@@ -234,7 +242,7 @@ public class ChuSuDung
         return string.Join("; ", parts);
     }
 
-    public string? NamSinh
+    private string? NamSinh
     {
         get
         {
@@ -261,24 +269,22 @@ public class ChuSuDung
                     parts.Add(namSinhVo);
             }
 
-            if (HoGiaDinh != null)
+            if (HoGiaDinh == null) return parts.Count > 0 ? string.Join("; ", parts) : null;
+            var namSinhThanhVien = new List<string>();
+
+            if (HoGiaDinh.ChuHo?.NamSinh != null)
+                namSinhThanhVien.Add($"Chủ hộ: {HoGiaDinh.ChuHo.NamSinh}");
+
+            if (HoGiaDinh.ListThanhVienHoGiaDinh is { Count: > 0 })
             {
-                var namSinhThanhVien = new List<string>();
-
-                if (HoGiaDinh.ChuHo?.NamSinh != null)
-                    namSinhThanhVien.Add($"Chủ hộ: {HoGiaDinh.ChuHo.NamSinh}");
-
-                if (HoGiaDinh.ListThanhVienHoGiaDinh != null && HoGiaDinh.ListThanhVienHoGiaDinh.Count > 0)
-                {
-                    var namSinhCacThanhVien = HoGiaDinh.ListThanhVienHoGiaDinh
-                        .Where(tv => tv.NamSinh != null)
-                        .Select(tv => tv.NamSinh!.Value.ToString());
-                    namSinhThanhVien.AddRange(namSinhCacThanhVien);
-                }
-
-                if (namSinhThanhVien.Count > 0)
-                    parts.Add(string.Join(", ", namSinhThanhVien));
+                var namSinhCacThanhVien = HoGiaDinh.ListThanhVienHoGiaDinh
+                    .Where(tv => tv.NamSinh != null)
+                    .Select(tv => tv.NamSinh!.Value.ToString());
+                namSinhThanhVien.AddRange(namSinhCacThanhVien);
             }
+
+            if (namSinhThanhVien.Count > 0)
+                parts.Add(string.Join(", ", namSinhThanhVien));
 
             return parts.Count > 0 ? string.Join("; ", parts) : null;
         }
@@ -300,19 +306,25 @@ public class ChuSuDung
                 var giayToChong = FormatSoGiayTo(VoChong.Chong?.ListGiayToTuyThan, showDashIfEmpty: false);
                 var giayToVo = FormatSoGiayTo(VoChong.Vo?.ListGiayToTuyThan, showDashIfEmpty: false);
 
-                if (!string.IsNullOrWhiteSpace(giayToChong) && !string.IsNullOrWhiteSpace(giayToVo))
+                switch (string.IsNullOrWhiteSpace(giayToChong))
                 {
-                    var giayToVoChong = VoChong.InVoTruoc == true
-                        ? $"{giayToVo}, {giayToChong}"
-                        : $"{giayToChong}, {giayToVo}";
-                    parts.Add(giayToVoChong);
+                    case false when !string.IsNullOrWhiteSpace(giayToVo):
+                    {
+                        var giayToVoChong = VoChong.InVoTruoc == true
+                            ? $"{giayToVo}, {giayToChong}"
+                            : $"{giayToChong}, {giayToVo}";
+                        parts.Add(giayToVoChong);
+                        break;
+                    }
+                    case false:
+                        parts.Add(!string.IsNullOrWhiteSpace(giayToChong) ? giayToChong : "(-)");
+                        break;
+                    default:
+                    {
+                        parts.Add(!string.IsNullOrWhiteSpace(giayToVo) ? giayToVo : "(-)");
+                        break;
+                    }
                 }
-                else if (!string.IsNullOrWhiteSpace(giayToChong))
-                    parts.Add(giayToChong);
-                else if (!string.IsNullOrWhiteSpace(giayToVo))
-                    parts.Add(giayToVo);
-                else
-                    parts.Add("(-)");
             }
 
             if (HoGiaDinh != null)
@@ -322,26 +334,21 @@ public class ChuSuDung
                 var chuHoGiayTo = FormatSoGiayTo(HoGiaDinh.ChuHo?.ListGiayToTuyThan, showDashIfEmpty: true);
                 giayToThanhVien.Add($"Chủ hộ: {chuHoGiayTo}");
 
-                if (HoGiaDinh.ListThanhVienHoGiaDinh != null && HoGiaDinh.ListThanhVienHoGiaDinh.Count > 0)
+                if (HoGiaDinh.ListThanhVienHoGiaDinh is { Count: > 0 })
                 {
-                    foreach (var tv in HoGiaDinh.ListThanhVienHoGiaDinh)
-                    {
-                        var tvGiayTo = FormatSoGiayTo(tv.ListGiayToTuyThan, showDashIfEmpty: false);
-                        if (!string.IsNullOrWhiteSpace(tvGiayTo))
-                            giayToThanhVien.Add(tvGiayTo);
-                    }
+                    giayToThanhVien.AddRange(HoGiaDinh.ListThanhVienHoGiaDinh
+                        .Select(tv => FormatSoGiayTo(tv.ListGiayToTuyThan, showDashIfEmpty: false))
+                        .Where(tvGiayTo => !string.IsNullOrWhiteSpace(tvGiayTo))!);
                 }
 
                 if (giayToThanhVien.Count > 0)
                     parts.Add(string.Join(", ", giayToThanhVien));
             }
 
-            if (ToChuc != null)
-            {
-                var giayToToChuc = FormatSoGiayTo(ToChuc.ListGiayToBoSung, showDashIfEmpty: false);
-                if (!string.IsNullOrWhiteSpace(giayToToChuc))
-                    parts.Add(giayToToChuc);
-            }
+            if (ToChuc == null) return parts.Count > 0 ? string.Join("; ", parts) : null;
+            var giayToToChuc = FormatSoGiayTo(ToChuc.ListGiayToBoSung, showDashIfEmpty: false);
+            if (!string.IsNullOrWhiteSpace(giayToToChuc))
+                parts.Add(giayToToChuc);
 
             return parts.Count > 0 ? string.Join("; ", parts) : null;
         }
@@ -360,8 +367,8 @@ public class ChuSuDung
                 else
                 {
                     var diaChiCaNhan = CaNhan.ListDiaChi?
-                        .FirstOrDefault(d => d.LaDiaChiChinh)?.DiaChiChiTiet
-                        ?? CaNhan.DiaChi;
+                                           .FirstOrDefault(d => d.LaDiaChiChinh)?.DiaChiChiTiet
+                                       ?? CaNhan.DiaChi;
                     if (!string.IsNullOrWhiteSpace(diaChiCaNhan))
                         parts.Add(diaChiCaNhan);
                 }
@@ -369,15 +376,15 @@ public class ChuSuDung
 
             if (VoChong != null)
             {
-                var diaChiChong = string.IsNullOrWhiteSpace(VoChong.Chong?.DiaChi) ?
-                    VoChong.Chong?.ListDiaChi?
-                        .FirstOrDefault(d => d.LaDiaChiChinh)?.DiaChiChiTiet
-                        ?? VoChong.Chong?.DiaChi ?? ""
+                var diaChiChong = string.IsNullOrWhiteSpace(VoChong.Chong?.DiaChi)
+                    ? VoChong.Chong?.ListDiaChi?
+                          .FirstOrDefault(d => d.LaDiaChiChinh)?.DiaChiChiTiet
+                      ?? VoChong.Chong?.DiaChi ?? ""
                     : VoChong.Chong?.DiaChi ?? "";
-                var diaChiVo = string.IsNullOrWhiteSpace(VoChong.Vo?.DiaChi) ?
-                    VoChong.Vo?.ListDiaChi?
-                    .FirstOrDefault(d => d.LaDiaChiChinh)?.DiaChiChiTiet
-                    ?? VoChong.Vo?.DiaChi ?? ""
+                var diaChiVo = string.IsNullOrWhiteSpace(VoChong.Vo?.DiaChi)
+                    ? VoChong.Vo?.ListDiaChi?
+                          .FirstOrDefault(d => d.LaDiaChiChinh)?.DiaChiChiTiet
+                      ?? VoChong.Vo?.DiaChi ?? ""
                     : VoChong.Vo?.DiaChi ?? "";
 
                 // Nếu cả hai có địa chỉ giống nhau, chỉ thêm một
@@ -400,12 +407,11 @@ public class ChuSuDung
 
             if (HoGiaDinh != null)
             {
-
                 // Địa chỉ hộ gia đình thường chung, nên chỉ lấy địa chỉ chung của hộ
-                var diaChiHoGiaDinh = string.IsNullOrWhiteSpace(HoGiaDinh.DiaChi) ?
-                    HoGiaDinh.ListDiaChi?
-                        .FirstOrDefault(d => d.LaDiaChiChinh)?.DiaChiChiTiet
-                        ?? HoGiaDinh.DiaChi
+                var diaChiHoGiaDinh = string.IsNullOrWhiteSpace(HoGiaDinh.DiaChi)
+                    ? HoGiaDinh.ListDiaChi?
+                          .FirstOrDefault(d => d.LaDiaChiChinh)?.DiaChiChiTiet
+                      ?? HoGiaDinh.DiaChi
                     : HoGiaDinh.DiaChi;
                 if (!string.IsNullOrWhiteSpace(diaChiHoGiaDinh))
                     parts.Add(diaChiHoGiaDinh);
@@ -413,10 +419,10 @@ public class ChuSuDung
 
             if (ToChuc != null)
             {
-                var diaChiToChuc = string.IsNullOrWhiteSpace(ToChuc.DiaChi) ?
-                    ToChuc.ListDiaChi?
-                        .FirstOrDefault(d => d.LaDiaChiChinh)?.DiaChiChiTiet
-                        ?? ToChuc.DiaChi
+                var diaChiToChuc = string.IsNullOrWhiteSpace(ToChuc.DiaChi)
+                    ? ToChuc.ListDiaChi?
+                          .FirstOrDefault(d => d.LaDiaChiChinh)?.DiaChiChiTiet
+                      ?? ToChuc.DiaChi
                     : ToChuc.DiaChi;
                 if (!string.IsNullOrWhiteSpace(diaChiToChuc))
                     parts.Add(diaChiToChuc);
@@ -425,6 +431,7 @@ public class ChuSuDung
             return parts.Count > 0 ? string.Join("; ", parts) : null;
         }
     }
+
     public string ChuSuDungCompact
     {
         get
@@ -438,7 +445,7 @@ public class ChuSuDung
                 parts.Add($"Năm sinh: {NamSinh}");
 
             if (!string.IsNullOrWhiteSpace(SoGiayTo))
-                parts.Add($"Số giấy tờ: {SoGiayTo}");
+                parts.Add(SoGiayTo);
 
             if (!string.IsNullOrWhiteSpace(DiaChi))
                 parts.Add($"Địa chỉ: {DiaChi}");

@@ -49,7 +49,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Views
         /// <summary>
         /// Gets the ViewModel for this window
         /// </summary>
-        public PlaywrightInstallationViewModel? ViewModel => DataContext as PlaywrightInstallationViewModel;
+        private PlaywrightInstallationViewModel? ViewModel => DataContext as PlaywrightInstallationViewModel;
 
         /// <summary>
         /// Auto-closes the window after a delay when installation is complete
@@ -59,10 +59,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Views
             await Task.Delay(delayMilliseconds);
 
             // Use dispatcher to close on UI thread
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                Close();
-            });
+            await Dispatcher.UIThread.InvokeAsync(Close);
         }
 
         /// <summary>
@@ -70,10 +67,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Views
         /// </summary>
         public void UpdateStatus(string message, int? progress = null, bool? isIndeterminate = null)
         {
-            Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                ViewModel?.UpdateStatus(message, progress, isIndeterminate);
-            });
+            Dispatcher.UIThread.InvokeAsync(() => { ViewModel?.UpdateStatus(message, progress, isIndeterminate); });
         }
 
         /// <summary>
@@ -81,10 +75,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Views
         /// </summary>
         public void StartInstallation()
         {
-            Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                ViewModel?.StartInstallation();
-            });
+            Dispatcher.UIThread.InvokeAsync(() => { ViewModel?.StartInstallation(); });
         }
 
         /// <summary>
@@ -92,10 +83,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Views
         /// </summary>
         public void CompleteInstallation()
         {
-            Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                ViewModel?.CompleteInstallation();
-            });
+            Dispatcher.UIThread.InvokeAsync(() => { ViewModel?.CompleteInstallation(); });
         }
 
         /// <summary>
@@ -103,10 +91,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Views
         /// </summary>
         public void SetError(string errorMessage)
         {
-            Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                ViewModel?.SetError(errorMessage);
-            });
+            Dispatcher.UIThread.InvokeAsync(() => { ViewModel?.SetError(errorMessage); });
         }
 
         /// <summary>
@@ -114,10 +99,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Views
         /// </summary>
         public void SetAlreadyInstalled()
         {
-            Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                ViewModel?.SetAlreadyInstalled();
-            });
+            Dispatcher.UIThread.InvokeAsync(() => { ViewModel?.SetAlreadyInstalled(); });
         }
     }
 }

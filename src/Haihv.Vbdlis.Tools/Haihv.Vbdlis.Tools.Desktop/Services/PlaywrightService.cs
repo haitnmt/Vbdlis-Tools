@@ -12,7 +12,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
     /// This service maintains cookies, local storage, session storage, and other browser state
     /// across multiple page navigations and application sessions.
     /// </summary>
-    public class PlaywrightService : IPlaywrightService, IDisposable
+    public sealed class PlaywrightService : IPlaywrightService, IDisposable
     {
         private IPlaywright? _playwright;
         private IBrowser? _browser;
@@ -84,12 +84,12 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                         // Permissions = new[] { "geolocation", "notifications" },
 
                         // Additional browser arguments (optional)
-                        Args = new[]
-                        {
+                        Args =
+                        [
                             "--disable-blink-features=AutomationControlled", // Hide automation
                             "--disable-dev-shm-usage",
                             "--no-sandbox"
-                        },
+                        ],
 
                         // Ignore HTTPS errors (use with caution)
                         IgnoreHTTPSErrors = false,
@@ -139,7 +139,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         /// </summary>
         public async Task CloseAsync()
         {
-            if (_context != null && _context.Pages.Count > 0)
+            if (_context is { Pages.Count: > 0 })
             {
                 // Create a copy of the pages collection to avoid modification during enumeration
                 var pages = _context.Pages.ToList();
@@ -196,28 +196,25 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         public void Dispose()
         {
             Dispose(true);
-            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
-            if (!_disposed)
+            if (_disposed) return;
+            if (disposing)
             {
-                if (disposing)
+                // Close browser synchronously (best effort)
+                try
                 {
-                    // Close browser synchronously (best effort)
-                    try
-                    {
-                        CloseAsync().GetAwaiter().GetResult();
-                    }
-                    catch
-                    {
-                        // Ignore errors during disposal
-                    }
+                    CloseAsync().GetAwaiter().GetResult();
                 }
-
-                _disposed = true;
+                catch
+                {
+                    // Ignore errors during disposal
+                }
             }
+
+            _disposed = true;
         }
     }
 }

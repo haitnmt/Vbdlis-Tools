@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using Microsoft.Playwright;
 using Serilog;
 
 namespace Haihv.Vbdlis.Tools.Desktop.Services
@@ -17,12 +16,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
     /// </summary>
     public class PlaywrightInstallerService : IPlaywrightInstallerService
     {
-        private readonly ILogger _logger;
-
-        public PlaywrightInstallerService()
-        {
-            _logger = Log.ForContext<PlaywrightInstallerService>();
-        }
+        private readonly ILogger _logger = Log.ForContext<PlaywrightInstallerService>();
 
         /// <summary>
         /// Gets the current operating system name
@@ -72,7 +66,6 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         /// </summary>
         private string[] GetBrowserSearchPaths()
         {
-
             var paths = new List<string>
             {
                 GetPlaywrightBrowsersPath(),
@@ -83,10 +76,14 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             {
                 paths.Add(envPath);
             }
-            return [.. paths
-                .Where(p => !string.IsNullOrWhiteSpace(p))
-                .Select(Path.GetFullPath)
-                .Distinct(StringComparer.OrdinalIgnoreCase)];
+
+            return
+            [
+                .. paths
+                    .Where(p => !string.IsNullOrWhiteSpace(p))
+                    .Select(Path.GetFullPath)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+            ];
         }
 
         /// <summary>
@@ -169,7 +166,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     installTargetPath = Path.GetFullPath(envPath);
                 }
 
-                _logger.Information("Playwright browsers missing. Attempting installation (chromium) to {Path}...", installTargetPath);
+                _logger.Information("Playwright browsers missing. Attempting installation (chromium) to {Path}...",
+                    installTargetPath);
                 onStatusChange?.Invoke("Đang tải và cài đặt Playwright (Chromium)...");
                 // Try bundled scripts first (pwsh/bash), then dotnet CLI, then in-process CLI.
                 var installed = await RunPlaywrightInstallScriptAsync(installTargetPath, onStatusChange);
@@ -179,7 +177,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 {
                     if (installed)
                     {
-                        _logger.Warning("Bundled installer reported success but browsers are still missing. Trying dotnet CLI fallback.");
+                        _logger.Warning(
+                            "Bundled installer reported success but browsers are still missing. Trying dotnet CLI fallback.");
                     }
                     else
                     {
@@ -191,7 +190,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
 
                     if (!dotnetInstalled || !hasBrowsersAfterDotnet)
                     {
-                        _logger.Information("dotnet CLI fallback failed or browsers still missing. Falling back to Microsoft.Playwright.Program.Main install...");
+                        _logger.Information(
+                            "dotnet CLI fallback failed or browsers still missing. Falling back to Microsoft.Playwright.Program.Main install...");
                         onStatusChange?.Invoke("Đang cài đặt bằng Playwright CLI (in-process)...");
                         await RunPlaywrightProgramMainAsync(installTargetPath, onStatusChange);
                     }
@@ -205,7 +205,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 }
 
                 _logger.Warning("Playwright installation finished but browsers still not detected.");
-                onStatusChange?.Invoke("Cài đặt hoàn tất nhưng không tìm thấy Chromium. Vui lòng thử lại hoặc cài thủ công.");
+                onStatusChange?.Invoke(
+                    "Cài đặt hoàn tất nhưng không tìm thấy Chromium. Vui lòng thử lại hoặc cài thủ công.");
                 return false;
             }
             catch (Exception ex)
@@ -216,21 +217,25 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             }
         }
 
-        private async Task<bool> RunPlaywrightDotnetCliAsync(string installTargetPath, Action<string>? onStatusChange = null)
+        private async Task<bool> RunPlaywrightDotnetCliAsync(string installTargetPath,
+            Action<string>? onStatusChange = null)
         {
             var appDir = AppDomain.CurrentDomain.BaseDirectory;
             var playwrightDll = Path.Combine(appDir, "Microsoft.Playwright.dll");
             if (!File.Exists(playwrightDll))
             {
-                _logger.Warning("Microsoft.Playwright.dll not found at {DllPath}. Skipping dotnet CLI fallback.", playwrightDll);
+                _logger.Warning("Microsoft.Playwright.dll not found at {DllPath}. Skipping dotnet CLI fallback.",
+                    playwrightDll);
                 return false;
             }
 
-            _logger.Information("Running dotnet CLI Playwright installer targeting {Path} using {Dll}...", installTargetPath, playwrightDll);
+            _logger.Information("Running dotnet CLI Playwright installer targeting {Path} using {Dll}...",
+                installTargetPath, playwrightDll);
             onStatusChange?.Invoke("Đang cài đặt bằng dotnet Playwright CLI...");
 
             var args = $"\"{playwrightDll}\" install chromium";
-            var success = await RunProcessAsync("dotnet", args, appDir, installTargetPath, onStatusChange, TimeSpan.FromMinutes(7));
+            var success = await RunProcessAsync("dotnet", args, appDir, installTargetPath, onStatusChange,
+                TimeSpan.FromMinutes(7));
 
             if (success)
             {
@@ -244,39 +249,41 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             return success;
         }
 
-        private async Task<bool> RunPlaywrightProgramMainAsync(string installTargetPath, Action<string>? onStatusChange = null)
+        private async Task RunPlaywrightProgramMainAsync(string installTargetPath,
+            Action<string>? onStatusChange = null)
         {
             try
             {
-                _logger.Information("Running Microsoft.Playwright.Program.Main install targeting {Path}...", installTargetPath);
+                _logger.Information("Running Microsoft.Playwright.Program.Main install targeting {Path}...",
+                    installTargetPath);
                 onStatusChange?.Invoke("Đang cài đặt bằng Playwright CLI (in-process)...");
                 var sw = Stopwatch.StartNew();
 
                 var exitCode = await Task.Run(() =>
                 {
                     Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", installTargetPath);
-                    return global::Microsoft.Playwright.Program.Main(new[] { "install", "chromium" });
+                    return Microsoft.Playwright.Program.Main(["install", "chromium"]);
                 });
 
                 sw.Stop();
                 if (exitCode == 0)
                 {
                     _logger.Information("Microsoft.Playwright.Program.Main completed in {Elapsed}.", sw.Elapsed);
-                    return true;
+                    return;
                 }
 
-                _logger.Warning("Microsoft.Playwright.Program.Main exited with code {Code} after {Elapsed}.", exitCode, sw.Elapsed);
-                return false;
+                _logger.Warning("Microsoft.Playwright.Program.Main exited with code {Code} after {Elapsed}.", exitCode,
+                    sw.Elapsed);
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, "Microsoft.Playwright.Program.Main failed");
                 onStatusChange?.Invoke($"Lỗi khi chạy Playwright CLI: {ex.Message}");
-                return false;
             }
         }
 
-        private async Task<bool> RunPlaywrightInstallScriptAsync(string installTargetPath, Action<string>? onStatusChange = null)
+        private async Task<bool> RunPlaywrightInstallScriptAsync(string installTargetPath,
+            Action<string>? onStatusChange = null)
         {
             var appDir = AppDomain.CurrentDomain.BaseDirectory;
             var psScript = Path.Combine(appDir, "playwright.ps1");
@@ -289,18 +296,21 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 var ok = HasChromiumInstalled(installTargetPath);
                 if (ok)
                 {
-                    _logger.Information("{Source} installer finished and Chromium is present at {Path}", sourceLabel, installTargetPath);
+                    _logger.Information("{Source} installer finished and Chromium is present at {Path}", sourceLabel,
+                        installTargetPath);
                     return true;
                 }
 
-                _logger.Warning("{Source} installer finished but Chromium is still missing at {Path}", sourceLabel, installTargetPath);
+                _logger.Warning("{Source} installer finished but Chromium is still missing at {Path}", sourceLabel,
+                    installTargetPath);
                 return false;
             }
 
             async Task<bool> TryRunAsync(string exe, string args, string sourceLabel, string statusMessage)
             {
                 onStatusChange?.Invoke(statusMessage);
-                if (!await RunProcessAsync(exe, args, appDir, installTargetPath, onStatusChange, TimeSpan.FromMinutes(5)))
+                if (!await RunProcessAsync(exe, args, appDir, installTargetPath, onStatusChange,
+                        TimeSpan.FromMinutes(5)))
                 {
                     return false;
                 }
@@ -310,36 +320,38 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                if (File.Exists(psScript))
+                if (!File.Exists(psScript)) return false;
+                // Prefer pwsh (64-bit) then fallback to Windows PowerShell
+                if (await TryRunAsync("pwsh", $"-NoProfile -NonInteractive -File \"{psScript}\" install chromium",
+                        "pwsh", "Đang cài đặt bằng PowerShell Core..."))
                 {
-                    // Prefer pwsh (64-bit) then fallback to Windows PowerShell
-                    if (await TryRunAsync("pwsh", $"-NoProfile -NonInteractive -File \"{psScript}\" install chromium", "pwsh", "Đang cài đặt bằng PowerShell Core..."))
+                    return true;
+                }
+
+                _logger.Information("pwsh failed or not found, trying Windows PowerShell...");
+                var candidates = GetWindowsPowerShellCandidates().ToList();
+                _logger.Information("Found {Count} PowerShell candidates: {Candidates}", candidates.Count,
+                    string.Join(", ", candidates));
+
+                foreach (var powershellPath in candidates)
+                {
+                    _logger.Information("Trying PowerShell at: {Path}", powershellPath);
+                    if (await TryRunAsync(powershellPath,
+                            $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"{psScript}\" install chromium",
+                            powershellPath, "Đang cài đặt bằng Windows PowerShell..."))
                     {
                         return true;
                     }
-
-                    _logger.Information("pwsh failed or not found, trying Windows PowerShell...");
-                    var candidates = GetWindowsPowerShellCandidates().ToList();
-                    _logger.Information("Found {Count} PowerShell candidates: {Candidates}", candidates.Count, string.Join(", ", candidates));
-
-                    foreach (var powershellPath in candidates)
-                    {
-                        _logger.Information("Trying PowerShell at: {Path}", powershellPath);
-                        if (await TryRunAsync(powershellPath, $"-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"{psScript}\" install chromium", powershellPath, "Đang cài đặt bằng Windows PowerShell..."))
-                        {
-                            return true;
-                        }
-                    }
-
-                    return false;
                 }
+
                 return false;
             }
 
             // macOS/Linux: prefer bash (no pwsh dependency), then pwsh as fallback
             if (File.Exists(shScript))
             {
-                if (await TryRunAsync("bash", $"\"{shScript}\" install chromium", "bash", "Đang cài đặt bằng bash script..."))
+                if (await TryRunAsync("bash", $"\"{shScript}\" install chromium", "bash",
+                        "Đang cài đặt bằng bash script..."))
                 {
                     return true;
                 }
@@ -347,7 +359,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
 
             if (File.Exists(psScript))
             {
-                return await TryRunAsync("pwsh", $"-NoProfile -NonInteractive -File \"{psScript}\" install chromium", "pwsh", "Đang cài đặt bằng PowerShell...");
+                return await TryRunAsync("pwsh", $"-NoProfile -NonInteractive -File \"{psScript}\" install chromium",
+                    "pwsh", "Đang cài đặt bằng PowerShell...");
             }
 
             return false;
@@ -388,7 +401,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             return candidates.Distinct(StringComparer.OrdinalIgnoreCase);
         }
 
-        private async Task<bool> RunProcessAsync(string fileName, string arguments, string workingDir, string? browserPath = null, Action<string>? onStatusChange = null, TimeSpan? timeout = null)
+        private async Task<bool> RunProcessAsync(string fileName, string arguments, string workingDir,
+            string? browserPath = null, Action<string>? onStatusChange = null, TimeSpan? timeout = null)
         {
             try
             {
@@ -410,25 +424,14 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     psi.Environment["PLAYWRIGHT_BROWSERS_PATH"] = browserPath;
                 }
 
-                using var process = new Process { StartInfo = psi };
+                using var process = new Process();
+                process.StartInfo = psi;
                 process.Start();
 
                 var stdoutTask = process.StandardOutput.ReadToEndAsync();
                 var stderrTask = process.StandardError.ReadToEndAsync();
                 var waitTask = process.WaitForExitAsync();
                 var combined = Task.WhenAll(stdoutTask, stderrTask, waitTask);
-
-                static string SafeRead(Task<string> task)
-                {
-                    try
-                    {
-                        return task.IsCompleted ? task.Result : string.Empty;
-                    }
-                    catch
-                    {
-                        return string.Empty;
-                    }
-                }
 
                 var completed = await Task.WhenAny(combined, Task.Delay(timeout.Value));
                 if (completed != combined)
@@ -449,6 +452,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     {
                         _logger.Information("playwright install stdout (timeout): {Stdout}", stdoutTimeout);
                     }
+
                     if (!string.IsNullOrWhiteSpace(stderrTimeout))
                     {
                         _logger.Warning("playwright install stderr (timeout): {Stderr}", stderrTimeout);
@@ -468,6 +472,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     onStatusChange?.Invoke(stdout);
                     _logger.Information("playwright install stdout: {Stdout}", stdout);
                 }
+
                 if (!string.IsNullOrWhiteSpace(stderr))
                 {
                     onStatusChange?.Invoke(stderr);
@@ -482,6 +487,18 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
 
                 _logger.Warning("playwright install exited with code {Code} via {Exe}", exitCode, fileName);
                 return false;
+
+                static string SafeRead(Task<string> task)
+                {
+                    try
+                    {
+                        return task.IsCompleted ? task.Result : string.Empty;
+                    }
+                    catch
+                    {
+                        return string.Empty;
+                    }
+                }
             }
             catch (Win32Exception ex) when (ex.NativeErrorCode == 2 /* ERROR_FILE_NOT_FOUND */)
             {
@@ -512,7 +529,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
 
                 if (!hasChromium || !hasHeadlessShell || !hasFfmpeg)
                 {
-                    _logger.Warning("Chromium installation incomplete at {Path}. chromium: {HasChromium}, headless_shell: {HasHeadless}, ffmpeg: {HasFfmpeg}",
+                    _logger.Warning(
+                        "Chromium installation incomplete at {Path}. chromium: {HasChromium}, headless_shell: {HasHeadless}, ffmpeg: {HasFfmpeg}",
                         path, hasChromium, hasHeadlessShell, hasFfmpeg);
                 }
 
@@ -523,6 +541,5 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 return false;
             }
         }
-
     }
 }

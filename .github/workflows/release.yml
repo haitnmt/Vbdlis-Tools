@@ -168,7 +168,9 @@ jobs:
 
           <!-- APP_UPDATE_NOTES_START -->
           ### ✨ Có gì mới trong phiên bản này?
-
+          **v1.0.25121705 (17 Tháng 12, 2025)**
+          - Tối ưu hiển thị Số giấy tờ của Chủ sử dụng (Bổ sung loại giấy tờ)
+          
           **v1.0.25121704 (17 Tháng 12, 2025)**
           - Tối ưu hóa logic xử lý hiển thị ghi chú phát hành
 
