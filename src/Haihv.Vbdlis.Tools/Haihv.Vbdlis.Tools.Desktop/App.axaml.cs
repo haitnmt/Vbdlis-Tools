@@ -1,7 +1,10 @@
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Documents;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
@@ -9,6 +12,8 @@ using Haihv.Vbdlis.Tools.Desktop.Views;
 using Haihv.Vbdlis.Tools.Desktop.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Serilog;
 using Haihv.Vbdlis.Tools.Desktop.ViewModels;
@@ -22,11 +27,16 @@ namespace Haihv.Vbdlis.Tools.Desktop
         private SplashWindow? _splashWindow;
         private SplashWindowViewModel? _splashViewModel;
 
+        private bool _forceUpdateDialogTest = false;
+
         public static IServiceProvider? Services { get; private set; }
 
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
+
+            // TEST ONLY: Uncomment to force show update dialog at startup (no "Để sau").
+            // _forceUpdateDialogTest = true;
         }
 
         public override void OnFrameworkInitializationCompleted()
@@ -79,6 +89,40 @@ namespace Haihv.Vbdlis.Tools.Desktop
                 {
                     _splashViewModel?.SetCheckingUpdates();
                 });
+
+                if (_forceUpdateDialogTest)
+                {
+                    var currentVersion = updateService?.CurrentVersion ?? "N/A";
+
+                    var releaseNotes = await FetchLatestReleaseNotesFromGithubAsync();
+                    if (string.IsNullOrWhiteSpace(releaseNotes))
+                    {
+                        releaseNotes = "### ✨ Có gì mới trong phiên bản này?\n" +
+                                       "- Sửa lỗi hiển thị ghi chú phát hành\n" +
+                                       "- Cải thiện **hiệu suất**\n" +
+                                       "\n" +
+                                       "### 📝 Ghi chú\n" +
+                                       "- Đây là dữ liệu test (force update).";
+                    }
+
+                    var sample = new UpdateInfo
+                    {
+                        Version = currentVersion,
+                        FileSize = 0,
+                        PublishedAt = DateTime.Now,
+                        IsRequired = true,
+                        DownloadUrl = string.Empty,
+                        ReleaseNotes = releaseNotes
+                    };
+
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        await ShowUpdateDialogAsync(sample, allowLater: false);
+                        _splashWindow?.Close();
+                        desktop.Shutdown();
+                    });
+                    return;
+                }
 
                 // First, check for updates BEFORE starting the app
                 await CheckForUpdatesAsync();
@@ -371,7 +415,7 @@ namespace Haihv.Vbdlis.Tools.Desktop
         /// <summary>
         /// Shows update dialog to user
         /// </summary>
-        private async Task<bool> ShowUpdateDialogAsync(UpdateInfo updateInfo)
+        private async Task<bool> ShowUpdateDialogAsync(UpdateInfo updateInfo, bool allowLater = true)
         {
             try
             {
@@ -446,12 +490,7 @@ namespace Haihv.Vbdlis.Tools.Desktop
                 infoStack.Children.Add(new ScrollViewer
                 {
                     Height = 150,
-                    Content = new TextBlock
-                    {
-                        Text = releaseNotesText,
-                        TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                        FontSize = 12
-                    }
+                    Content = CreateRichReleaseNotesBlock(releaseNotesText)
                 });
                 infoPanel.Child = infoStack;
                 Grid.SetRow(infoPanel, 1);
@@ -467,6 +506,18 @@ namespace Haihv.Vbdlis.Tools.Desktop
 
                 bool result = false;
 
+                if (!allowLater)
+                {
+                    messageBox.Closing += (s, e) =>
+                    {
+                        // Force update in test mode: prevent closing unless user clicked update
+                        if (!result)
+                        {
+                            e.Cancel = true;
+                        }
+                    };
+                }
+
                 var updateButton = new Button
                 {
                     Content = "Cập nhật ngay",
@@ -481,7 +532,15 @@ namespace Haihv.Vbdlis.Tools.Desktop
                     result = true;
                     messageBox.Close();
                 };
-                Grid.SetColumn(updateButton, 1);
+                if (allowLater)
+                {
+                    Grid.SetColumn(updateButton, 1);
+                }
+                else
+                {
+                    Grid.SetColumn(updateButton, 0);
+                    Grid.SetColumnSpan(updateButton, 3);
+                }
 
                 var laterButton = new Button
                 {
@@ -498,7 +557,10 @@ namespace Haihv.Vbdlis.Tools.Desktop
                 Grid.SetColumn(laterButton, 2);
 
                 buttonPanel.Children.Add(updateButton);
-                buttonPanel.Children.Add(laterButton);
+                if (allowLater)
+                {
+                    buttonPanel.Children.Add(laterButton);
+                }
                 Grid.SetRow(buttonPanel, 2);
                 container.Children.Add(buttonPanel);
 
@@ -514,6 +576,166 @@ namespace Haihv.Vbdlis.Tools.Desktop
             catch
             {
                 return false;
+            }
+        }
+
+        private static Control CreateRichReleaseNotesBlock(string text)
+        {
+            var block = new TextBlock
+            {
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                FontSize = 12
+            };
+
+            foreach (var inline in ParseSimpleMarkdownToInlines(text))
+            {
+                block.Inlines!.Add(inline);
+            }
+
+            return block;
+        }
+
+        private static async Task<string> FetchLatestReleaseNotesFromGithubAsync()
+        {
+            try
+            {
+                // Keep this local to the app for test purposes (no extra permissions needed).
+                const string owner = "haitnmt";
+                const string repo = "Vbdlis-Tools";
+                var apiUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
+
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Vbdlis-Tools-UpdateDialogTest");
+
+                var json = await client.GetStringAsync(apiUrl);
+                using var doc = JsonDocument.Parse(json);
+
+                if (doc.RootElement.TryGetProperty("body", out var bodyElement))
+                {
+                    var body = bodyElement.GetString() ?? string.Empty;
+                    return ExtractAppUpdateNotesFromReleaseBody(body);
+                }
+
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "[TEST] Failed to fetch GitHub release notes");
+                return string.Empty;
+            }
+        }
+
+        private static string ExtractAppUpdateNotesFromReleaseBody(string fullReleaseNotes)
+        {
+            const string startMarker = "<!-- APP_UPDATE_NOTES_START -->";
+            const string endMarker = "<!-- APP_UPDATE_NOTES_END -->";
+
+            if (string.IsNullOrWhiteSpace(fullReleaseNotes))
+            {
+                return string.Empty;
+            }
+
+            var startIndex = fullReleaseNotes.IndexOf(startMarker, StringComparison.Ordinal);
+            var endIndex = fullReleaseNotes.IndexOf(endMarker, StringComparison.Ordinal);
+
+            if (startIndex >= 0 && endIndex > startIndex)
+            {
+                startIndex += startMarker.Length;
+                return fullReleaseNotes.Substring(startIndex, endIndex - startIndex).Trim();
+            }
+
+            // If markers are missing, fall back to the full body.
+            return fullReleaseNotes.Trim();
+        }
+
+        private static IEnumerable<Inline> ParseSimpleMarkdownToInlines(string input)
+        {
+            // Minimal markdown-like parser for update notes:
+            // - Headings: ### Title
+            // - Bullets: - item
+            // - Bold: **text**
+            // - Blank lines
+            if (string.IsNullOrEmpty(input))
+            {
+                yield break;
+            }
+
+            var normalized = input.Replace("\r\n", "\n").Replace("\r", "\n");
+            var lines = normalized.Split('\n');
+
+            var firstLine = true;
+            foreach (var raw in lines)
+            {
+                var line = (raw ?? string.Empty).TrimEnd();
+
+                if (!firstLine)
+                {
+                    yield return new LineBreak();
+                }
+                firstLine = false;
+
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    // Keep a blank line for readability
+                    yield return new LineBreak();
+                    continue;
+                }
+
+                // Heading (e.g. ### ...)
+                if (Regex.IsMatch(line, @"^#{1,6}\s+"))
+                {
+                    var headingText = Regex.Replace(line, @"^#{1,6}\s+", string.Empty).Trim();
+                    var headingSpan = new Span
+                    {
+                        FontWeight = Avalonia.Media.FontWeight.SemiBold,
+                        FontSize = 13
+                    };
+                    foreach (var i in ParseBoldSegments(headingText))
+                        headingSpan.Inlines!.Add(i);
+                    yield return headingSpan;
+                    continue;
+                }
+
+                // Bullet (- item)
+                if (Regex.IsMatch(line, @"^[-*]\s+"))
+                {
+                    yield return new Run("• ");
+                    var bulletText = Regex.Replace(line, @"^[-*]\s+", string.Empty);
+                    foreach (var i in ParseBoldSegments(bulletText))
+                        yield return i;
+                    continue;
+                }
+
+                // Plain line (may contain **bold**)
+                foreach (var i in ParseBoldSegments(line))
+                    yield return i;
+            }
+        }
+
+        private static IEnumerable<Inline> ParseBoldSegments(string line)
+        {
+            // Split by **bold** segments. This is intentionally simple and safe.
+            // Example: "abc **bold** def" -> Run("abc ") + Bold(Run("bold")) + Run(" def")
+            if (string.IsNullOrEmpty(line))
+                yield break;
+
+            var parts = Regex.Split(line, @"(\*\*[^*]+\*\*)");
+            foreach (var part in parts)
+            {
+                if (string.IsNullOrEmpty(part))
+                    continue;
+
+                if (part.StartsWith("**") && part.EndsWith("**") && part.Length >= 4)
+                {
+                    var boldText = part.Substring(2, part.Length - 4);
+                    var bold = new Bold();
+                    bold.Inlines!.Add(new Run(boldText));
+                    yield return bold;
+                }
+                else
+                {
+                    yield return new Run(part);
+                }
             }
         }
 

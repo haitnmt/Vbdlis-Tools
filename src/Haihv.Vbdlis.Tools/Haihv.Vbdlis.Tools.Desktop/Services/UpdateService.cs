@@ -102,8 +102,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                     _logger.Information("[UPDATE] Release notes fetched successfully ({Length} chars)", fullReleaseNotes.Length);
 
                     // Extract only the APP_UPDATE_NOTES section (for in-app display)
-                    var releaseNotes = ExtractAppUpdateNotes(fullReleaseNotes);
-                    return releaseNotes;
+                    return ExtractAppUpdateNotes(fullReleaseNotes);
                 }
 
                 return string.Empty;
@@ -114,6 +113,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
                 return string.Empty;
             }
         }
+
 
         /// <summary>
         /// Extracts only the section between APP_UPDATE_NOTES_START and APP_UPDATE_NOTES_END markers
