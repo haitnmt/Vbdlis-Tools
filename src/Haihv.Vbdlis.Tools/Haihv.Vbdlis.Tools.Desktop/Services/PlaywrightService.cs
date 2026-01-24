@@ -36,6 +36,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
         public IBrowser? Browser { get; private set; }
 
         public bool IsInitialized => Context != null && Browser != null;
+
         public async Task<IPage?> EnsurePageAsync(IPage? page, string url)
         {
             _logger.Debug("EnsurePageAsync - IsInitialized: {IsInit}, Page null: {PageNull}",
@@ -60,7 +61,8 @@ namespace Haihv.Vbdlis.Tools.Desktop.Services
             {
                 if (IsSessionExpired())
                 {
-                    var message = $"Phiên đăng nhập đã hết hạn do quá {SessionIdleTimeoutMinutes} phút không hoạt động.\nVui lòng đăng nhập lại!";
+                    var message =
+                        $"Phiên đăng nhập đã hết hạn do quá {SessionIdleTimeoutMinutes} phút không hoạt động.\nVui lòng đăng nhập lại!";
                     NotifyStatus(message);
                     NotifySessionExpired(message);
                     _logger.Warning("Session expired due to inactivity.");
