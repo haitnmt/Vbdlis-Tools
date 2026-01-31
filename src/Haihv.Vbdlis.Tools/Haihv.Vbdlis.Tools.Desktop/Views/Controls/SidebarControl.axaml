@@ -43,15 +43,41 @@
                     Content="🏠 Trang chủ"
                     ToolTip.Tip="Quay lại trang chủ" />
 
-                <Button
-                    Padding="15,10"
+                <Expander
+                    IsExpanded="True"
                     HorizontalAlignment="Stretch"
-                    HorizontalContentAlignment="Left"
+                    HorizontalContentAlignment="Stretch"
                     Background="Transparent"
                     BorderThickness="0"
-                    Command="{Binding ShowCungCapThongTinCommand}"
-                    Content="🔎 Cung cấp thông tin"
-                    ToolTip.Tip="Cung cấp thông tin giấy chứng nhận" />
+                    Padding="0"
+                    Header="🔎 Cung cấp thông tin">
+                    <StackPanel>
+                        <Button
+                            Padding="30,8"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Command="{Binding SearchCungCapThongTinSoGiayToCommand}"
+                            Content="🪪 Theo Số Giấy Tờ" />
+                        <Button
+                            Padding="30,8"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Command="{Binding SearchCungCapThongTinSoPhatHanhCommand}"
+                            Content="🔰 Theo Số Phát Hành" />
+                        <Button
+                            Padding="30,8"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Content="🗺️ Theo Thửa Đất"
+                            IsVisible="False" />
+                    </StackPanel>
+                </Expander>
 
                 <!-- <Button
                     Padding="15,10"
@@ -65,7 +91,7 @@
 
                 <Separator Margin="10,0"
                            BorderThickness="0,1,0,0"
-                           BorderBrush="#cccccc"/>
+                           BorderBrush="#cccccc" />
 
                 <Button
                     Padding="15,10"
@@ -80,8 +106,8 @@
         </ScrollViewer>
 
         <!--  Phần dưới cùng: Giới thiệu  -->
-        <Border 
-            Grid.Row="2" 
+        <Border
+            Grid.Row="2"
             Padding="10"
             BorderBrush="#cccccc"
             BorderThickness="0,1,0,0">

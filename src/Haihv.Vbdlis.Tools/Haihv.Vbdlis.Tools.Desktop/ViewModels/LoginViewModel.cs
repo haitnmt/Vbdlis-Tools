@@ -152,7 +152,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
                     }
                     else
                     {
-                        // Logged in with different user - need to logout first
+                        // Logged in with different user - need to log out first
                         try
                         {
                             // First, click on the user profile dropdown to reveal logout link
@@ -183,7 +183,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
                 {
                     Debug.WriteLine(ex.Message);
                     // User profile element not found - might not be logged in
-                    // Try to login anyway
+                    // Try to log in any way
                     ErrorMessage = "Không thể xác định trạng thái đăng nhập. Vui lòng thử lại.";
                 }
             }
@@ -192,7 +192,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
         private async Task PerformLoginAsync(IPage page)
         {
             UpdateLoginStatus("Đang điền thông tin đăng nhập...");
-            // Need to login - fill in login form
+            // Need to log in - fill in login form
             await page.FillAsync("input[name='username']", Username);
             await page.FillAsync("input[name='password']", Password);
 

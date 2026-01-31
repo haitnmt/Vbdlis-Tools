@@ -5,29 +5,22 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:Haihv.Vbdlis.Tools.Desktop"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:Haihv.Vbdlis.Tools.Desktop.Views.Controls"
     xmlns:vm="using:Haihv.Vbdlis.Tools.Desktop.ViewModels"
     d:DesignHeight="450"
     d:DesignWidth="800"
     x:DataType="vm:CungCapThongTinViewModel"
     mc:Ignorable="d">
-    <Grid Margin="15" RowDefinitions="Auto,*,Auto">
-        <!--  Toolbar - Search Buttons  -->
-        <StackPanel
-            Grid.Row="0"
-            Margin="0,0,0,15"
-            Orientation="Horizontal"
-            Spacing="10">
-            <Button Command="{Binding SearchBySoGiayToCommand}" Content="🪪 Tìm kiếm theo Số Giấy Tờ" />
-            <Button Command="{Binding SearchBySoPhatHanhCommand}" Content="🔰 Tìm kiếm theo Số Phát Hành" />
-            <Button Content="🗺️ Tìm kiếm theo Thửa Đất" IsEnabled="False" />
-        </StackPanel>
+    <Grid Margin="15" ColumnDefinitions="320,*" RowDefinitions="*,Auto" ColumnSpacing="15">
+        <controls:SearchInputControl Grid.Row="0" Grid.Column="0" />
 
         <!--  Results DataGrid  -->
-        <local:KetQuaTimKiemDataGridControl x:Name="ResultsDataGrid" Grid.Row="1" />
+        <local:KetQuaTimKiemDataGridControl x:Name="ResultsDataGrid" Grid.Row="0" Grid.Column="1" />
 
         <!--  Status Bar  -->
         <Grid
-            Grid.Row="2" 
+            Grid.Row="1"
+            Grid.ColumnSpan="2" Grid.Column="0"
             Margin="0,15,0,0"
             ColumnDefinitions="Auto,*,Auto,Auto"
             IsVisible="{Binding IsStatusVisible}"

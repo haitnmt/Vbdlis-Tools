@@ -18,36 +18,30 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
         private readonly ICredentialService _credentialService;
         private LoginSessionInfo? _currentLoginSession;
 
-        [ObservableProperty]
-        private bool _isLoggedIn;
+        [ObservableProperty] private bool _isLoggedIn;
 
-        [ObservableProperty]
-        private string _loggedInUsername = string.Empty;
+        [ObservableProperty] private string _loggedInUsername = string.Empty;
 
-        [ObservableProperty]
-        private string _loggedInServer = string.Empty;
+        [ObservableProperty] private string _loggedInServer = string.Empty;
 
-        [ObservableProperty]
-        private LoginViewModel _loginViewModel;
+        [ObservableProperty] private LoginViewModel _loginViewModel;
 
-        [ObservableProperty]
-        private ViewModelBase? _currentViewModel;
+        [ObservableProperty] private ViewModelBase? _currentViewModel;
 
-        [ObservableProperty]
-        private CungCapThongTinViewModel? _cungCapThongTinViewModel;
+        [ObservableProperty] private CungCapThongTinViewModel? _cungCapThongTinViewModel;
 
-        [ObservableProperty]
-        private DemoViewModel? _demoViewModel;
+        [ObservableProperty] private DemoViewModel? _demoViewModel;
 
-        [ObservableProperty]
-        private HomeViewModel? _homeViewModel;
+        [ObservableProperty] private HomeViewModel? _homeViewModel;
 
         public static string AppVersion
         {
             get
             {
                 var version = Assembly.GetExecutingAssembly().GetName().Version;
-                return version != null ? $"{version.Major}.{version.Minor}.{version.Build}.{version.Revision}" : "1.0.0";
+                return version != null
+                    ? $"{version.Major}.{version.Minor}.{version.Build}.{version.Revision}"
+                    : "1.0.0";
             }
         }
 
@@ -137,10 +131,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
 
         private void OnSessionExpired(string message)
         {
-            Dispatcher.UIThread.Post(async () =>
-            {
-                await HandleSessionExpiredAsync(message);
-            });
+            Dispatcher.UIThread.Post(async () => { await HandleSessionExpiredAsync(message); });
         }
 
         private async Task HandleSessionExpiredAsync(string message)
@@ -159,14 +150,43 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
         [RelayCommand]
         private void ShowCungCapThongTin()
         {
-            // Create ViewModel if not already created
-            if (CungCapThongTinViewModel == null && _currentLoginSession != null)
+            EnsureCungCapThongTinViewModel();
+
+            CurrentViewModel = CungCapThongTinViewModel;
+        }
+
+        [RelayCommand]
+        private async Task SearchCungCapThongTinSoGiayTo()
+        {
+            if (!EnsureCungCapThongTinViewModel())
             {
-                var searchService = new CungCapThongTinGiayChungNhanService(_playwrightService, _currentLoginSession);
-                CungCapThongTinViewModel = new CungCapThongTinViewModel(searchService);
+                return;
             }
 
             CurrentViewModel = CungCapThongTinViewModel;
+            CungCapThongTinViewModel!.SelectedSearchTabIndex = 0;
+
+            if (CungCapThongTinViewModel.SearchBySoGiayToCommand.CanExecute(null))
+            {
+                await CungCapThongTinViewModel.SearchBySoGiayToCommand.ExecuteAsync(null);
+            }
+        }
+
+        [RelayCommand]
+        private async Task SearchCungCapThongTinSoPhatHanh()
+        {
+            if (!EnsureCungCapThongTinViewModel())
+            {
+                return;
+            }
+
+            CurrentViewModel = CungCapThongTinViewModel;
+            CungCapThongTinViewModel!.SelectedSearchTabIndex = 1;
+
+            if (CungCapThongTinViewModel.SearchBySoPhatHanhCommand.CanExecute(null))
+            {
+                await CungCapThongTinViewModel.SearchBySoPhatHanhCommand.ExecuteAsync(null);
+            }
         }
 
         [RelayCommand]
@@ -217,6 +237,17 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
             LoginViewModel.Password = string.Empty;
             LoginViewModel.ErrorMessage = string.Empty;
             CurrentViewModel = HomeViewModel;
+        }
+
+        private bool EnsureCungCapThongTinViewModel()
+        {
+            if (CungCapThongTinViewModel == null && _currentLoginSession != null)
+            {
+                var searchService = new CungCapThongTinGiayChungNhanService(_playwrightService, _currentLoginSession);
+                CungCapThongTinViewModel = new CungCapThongTinViewModel(searchService);
+            }
+
+            return CungCapThongTinViewModel != null;
         }
     }
 }

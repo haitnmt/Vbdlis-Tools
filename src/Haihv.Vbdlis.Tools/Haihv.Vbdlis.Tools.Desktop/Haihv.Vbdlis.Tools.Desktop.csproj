@@ -54,6 +54,8 @@
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
       <PackageReference Include="EPPlus" Version="8.4.1"/>
     <PackageReference Include="Velopack" Version="0.0.1298" />
+      <PackageReference Include="ZiggyCreatures.FusionCache" Version="2.5.0"/>
+      <PackageReference Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.5.0"/>
   </ItemGroup>
 
   <ItemGroup>

@@ -1,13 +1,9 @@
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Haihv.Tools.Hsq.Helpers;
 using Haihv.Vbdlis.Tools.Desktop.Models;
 using Haihv.Vbdlis.Tools.Desktop.Models.Vbdlis;
 using Haihv.Vbdlis.Tools.Desktop.Services.Vbdlis;
-using Haihv.Vbdlis.Tools.Desktop.Views;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -49,6 +45,20 @@ public partial class CungCapThongTinViewModel : ViewModelBase
     [ObservableProperty] private string _currentSearchItem = string.Empty;
 
     [ObservableProperty] private string _currentSearchType = string.Empty;
+
+    [ObservableProperty] private string _searchInput = string.Empty;
+
+    [ObservableProperty] private ObservableCollection<string> _searchHistory = [];
+
+    [ObservableProperty] private string? _selectedSearchHistory;
+
+    [ObservableProperty] private int _selectedSearchTabIndex;
+
+    public bool IsSoGiayToMode => SelectedSearchTabIndex == 0;
+
+    public bool IsSoPhatHanhMode => SelectedSearchTabIndex == 1;
+
+    public bool IsThuaDatMode => SelectedSearchTabIndex == 2;
 
     public bool IsStatusVisible => IsSearching || IsInitializing;
 
@@ -117,6 +127,21 @@ public partial class CungCapThongTinViewModel : ViewModelBase
         OnPropertyChanged(nameof(StatusSummary));
     }
 
+    partial void OnSelectedSearchHistoryChanged(string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            SearchInput = value;
+        }
+    }
+
+    partial void OnSelectedSearchTabIndexChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsSoGiayToMode));
+        OnPropertyChanged(nameof(IsSoPhatHanhMode));
+        OnPropertyChanged(nameof(IsThuaDatMode));
+    }
+
     private void OnSearchServiceStatusChanged(string message)
     {
         if (string.IsNullOrWhiteSpace(message))
@@ -132,22 +157,10 @@ public partial class CungCapThongTinViewModel : ViewModelBase
     {
         Log.Information("SearchBySoGiayToAsync started");
 
-        var mainWindow = GetMainWindow();
-        if (mainWindow == null)
+        if (!string.IsNullOrWhiteSpace(SearchInput))
         {
-            Log.Warning("MainWindow is null, cannot show dialog");
-            return;
-        }
-
-        Log.Information("Showing search input dialog");
-        var dialog = new SearchInputWindow("Tìm kiếm theo Số Giấy Tờ");
-        var result = await dialog.ShowDialog(mainWindow);
-
-        Log.Information("Dialog closed. IsConfirmed: {IsConfirmed}, Input: {Input}", result.IsConfirmed, result.Input);
-
-        if (result.IsConfirmed && !string.IsNullOrWhiteSpace(result.Input))
-        {
-            var items = ParseInput(result.Input);
+            AddToHistory(SearchInput);
+            var items = ParseInput(SearchInput, splitBySpace: true);
             Log.Information("Parsed {Count} items: {Items}", items.Length, string.Join(", ", items));
 
             try
@@ -212,7 +225,6 @@ public partial class CungCapThongTinViewModel : ViewModelBase
                                     return await _searchService.SearchAsync(soGiayTo: modifiedItem);
                                 Log.Information("No leading zeros to remove for item: {Item}", modifiedItem);
                                 return null;
-
                             }
                         }
                     }
@@ -235,15 +247,10 @@ public partial class CungCapThongTinViewModel : ViewModelBase
     [RelayCommand]
     private async Task SearchBySoPhatHanhAsync()
     {
-        var mainWindow = GetMainWindow();
-        if (mainWindow == null) return;
-
-        var dialog = new SearchInputWindow("Tìm kiếm theo Số Phát Hành");
-        var (isConfirmed, input) = await dialog.ShowDialog(mainWindow);
-
-        if (isConfirmed && !string.IsNullOrWhiteSpace(input))
+        if (!string.IsNullOrWhiteSpace(SearchInput))
         {
-            var items = ParseInput(input);
+            AddToHistory(SearchInput);
+            var items = ParseInput(SearchInput, splitBySpace: false);
             await PerformSearchAsync(items, async (item) =>
             {
                 var modifiedItem = item.NormalizedSoPhatHanh();
@@ -252,25 +259,78 @@ public partial class CungCapThongTinViewModel : ViewModelBase
         }
     }
 
-    private static Window? GetMainWindow()
+    private static string[] ParseInput(string input, bool splitBySpace)
     {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            return desktop.MainWindow;
-        }
+        var separators = splitBySpace
+            ? new HashSet<char> { '\n', '\r', ';', ' ' }
+            : new HashSet<char> { '\n', '\r', ';' };
 
-        return null;
-    }
-
-    private static string[] ParseInput(string input)
-    {
         return
         [
-            .. input
-                .Split(['\n', '\r', ';'], StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim())
-                .Where(s => !string.IsNullOrWhiteSpace(s))
+            .. SplitInput(input, separators)
         ];
+    }
+
+    private static IEnumerable<string> SplitInput(string input, HashSet<char> separators)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            yield break;
+        }
+
+        var buffer = new System.Text.StringBuilder();
+        var inQuotes = false;
+
+        foreach (var ch in input)
+        {
+            if (ch == '"')
+            {
+                inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (!inQuotes && separators.Contains(ch))
+            {
+                var token = buffer.ToString().Trim();
+                if (!string.IsNullOrWhiteSpace(token))
+                {
+                    yield return token;
+                }
+
+                buffer.Clear();
+                continue;
+            }
+
+            buffer.Append(ch);
+        }
+
+        var last = buffer.ToString().Trim();
+        if (!string.IsNullOrWhiteSpace(last))
+        {
+            yield return last;
+        }
+    }
+
+    private void AddToHistory(string input)
+    {
+        var trimmed = input.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return;
+        }
+
+        if (SearchHistory.Contains(trimmed))
+        {
+            SearchHistory.Remove(trimmed);
+        }
+
+        SearchHistory.Insert(0, trimmed);
+
+        const int maxHistoryItems = 20;
+        if (SearchHistory.Count > maxHistoryItems)
+        {
+            SearchHistory.RemoveAt(SearchHistory.Count - 1);
+        }
     }
 
     private async Task PerformSearchAsync(
