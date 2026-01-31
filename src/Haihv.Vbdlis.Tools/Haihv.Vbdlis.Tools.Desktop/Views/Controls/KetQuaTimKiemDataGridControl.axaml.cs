@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Haihv.Vbdlis.Tools.Desktop.Models.Vbdlis;
 using Haihv.Vbdlis.Tools.Desktop.ViewModels;
 
-namespace Haihv.Vbdlis.Tools.Desktop;
+namespace Haihv.Vbdlis.Tools.Desktop.Views.Controls;
 
 public partial class KetQuaTimKiemDataGridControl : UserControl
 {

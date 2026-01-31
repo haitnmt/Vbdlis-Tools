@@ -37,7 +37,7 @@ public partial class CungCapThongTinView : UserControl
     private void UpdateDataGrid(AdvancedSearchGiayChungNhanResponse response)
     {
         // Tìm control ResultsDataGrid trong XAML
-        var dataGridControl = this.FindControl<KetQuaTimKiemDataGridControl>("ResultsDataGrid");
+        var dataGridControl = this.FindControl<Controls.KetQuaTimKiemDataGridControl>("ResultsDataGrid");
 
         if (dataGridControl != null)
         {
