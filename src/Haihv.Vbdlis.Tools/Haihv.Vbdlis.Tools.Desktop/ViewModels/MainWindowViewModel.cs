@@ -9,6 +9,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Haihv.Vbdlis.Tools.Desktop.Models;
 using Haihv.Vbdlis.Tools.Desktop.Services.Vbdlis;
+using Serilog;
 
 namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
 {
@@ -16,6 +17,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
     {
         private readonly IPlaywrightService _playwrightService;
         private readonly ICredentialService _credentialService;
+        private readonly ILogger _logger = Log.ForContext<MainWindowViewModel>();
         private LoginSessionInfo? _currentLoginSession;
 
         [ObservableProperty] private bool _isLoggedIn;
@@ -61,7 +63,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
                 HeadlessBrowser = true
             };
 
-            // Subscribe to login events
+            // Subscribe to log in events
             _loginViewModel.LoginSuccessful += OnLoginSuccessful;
             _loginViewModel.LoginCancelled += OnLoginCancelled;
             _playwrightService.SessionExpired += OnSessionExpired;
@@ -97,23 +99,30 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
 
         private async void OnLoginSuccessful(object? sender, LoginEventArgs e)
         {
-            // Update login state
-            IsLoggedIn = true;
-            LoggedInUsername = e.Username;
-            LoggedInServer = e.Server;
-
-            // Store current login session
-            _currentLoginSession = new LoginSessionInfo(e.Server, e.Username, e.Password, e.HeadlessBrowser);
-
-            // Save credentials for next time only if RememberMe is checked
-            if (e.RememberMe)
+            try
             {
-                await _credentialService.SaveCredentialsAsync(_currentLoginSession);
+                // Update login state
+                IsLoggedIn = true;
+                LoggedInUsername = e.Username;
+                LoggedInServer = e.Server;
+
+                // Store current login session
+                _currentLoginSession = new LoginSessionInfo(e.Server, e.Username, e.Password, e.HeadlessBrowser);
+
+                // Save credentials for next time only if RememberMe is checked
+                if (e.RememberMe)
+                {
+                    await _credentialService.SaveCredentialsAsync(_currentLoginSession);
+                }
+                else
+                {
+                    // Clear saved credentials if RememberMe is unchecked
+                    await _credentialService.ClearCredentialsAsync();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // Clear saved credentials if RememberMe is unchecked
-                await _credentialService.ClearCredentialsAsync();
+                _logger.Error(ex, "Login failed");
             }
         }
 
@@ -131,7 +140,17 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
 
         private void OnSessionExpired(string message)
         {
-            Dispatcher.UIThread.Post(async () => { await HandleSessionExpiredAsync(message); });
+            Dispatcher.UIThread.Post(async void () =>
+            {
+                try
+                {
+                    await HandleSessionExpiredAsync(message);
+                }
+                catch (Exception e)
+                {
+                    _logger.Warning(e, "Session expired");
+                }
+            });
         }
 
         private async Task HandleSessionExpiredAsync(string message)
@@ -156,37 +175,29 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels
         }
 
         [RelayCommand]
-        private async Task SearchCungCapThongTinSoGiayTo()
+        private Task SearchCungCapThongTinSoGiayTo()
         {
             if (!EnsureCungCapThongTinViewModel())
             {
-                return;
+                return Task.CompletedTask;
             }
 
             CurrentViewModel = CungCapThongTinViewModel;
             CungCapThongTinViewModel!.SelectedSearchTabIndex = 0;
-
-            if (CungCapThongTinViewModel.SearchBySoGiayToCommand.CanExecute(null))
-            {
-                await CungCapThongTinViewModel.SearchBySoGiayToCommand.ExecuteAsync(null);
-            }
+            return Task.CompletedTask;
         }
 
         [RelayCommand]
-        private async Task SearchCungCapThongTinSoPhatHanh()
+        private Task SearchCungCapThongTinSoPhatHanh()
         {
             if (!EnsureCungCapThongTinViewModel())
             {
-                return;
+                return Task.CompletedTask;
             }
 
             CurrentViewModel = CungCapThongTinViewModel;
             CungCapThongTinViewModel!.SelectedSearchTabIndex = 1;
-
-            if (CungCapThongTinViewModel.SearchBySoPhatHanhCommand.CanExecute(null))
-            {
-                await CungCapThongTinViewModel.SearchBySoPhatHanhCommand.ExecuteAsync(null);
-            }
+            return Task.CompletedTask;
         }
 
         [RelayCommand]
