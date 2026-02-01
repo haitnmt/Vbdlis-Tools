@@ -1,8 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Haihv.Tools.Hsq.Helpers;
+using Haihv.Vbdlis.Tools.Desktop.Entities;
 using Haihv.Vbdlis.Tools.Desktop.Models;
 using Haihv.Vbdlis.Tools.Desktop.Models.Vbdlis;
+using Haihv.Vbdlis.Tools.Desktop.Services.Data;
 using Haihv.Vbdlis.Tools.Desktop.Services.Vbdlis;
 using Serilog;
 using System;
@@ -15,7 +17,12 @@ namespace Haihv.Vbdlis.Tools.Desktop.ViewModels;
 
 public partial class CungCapThongTinViewModel : ViewModelBase
 {
+    private const string SearchTypeSoGiayToKey = "so-giay-to";
+    private const string SearchTypeSoPhatHanhKey = "so-phat-hanh";
+    private const string SearchTypeThuaDatKey = "thua-dat";
+
     private readonly CungCapThongTinGiayChungNhanService _searchService;
+    private readonly SearchHistoryService _searchHistoryService;
     private Action<AdvancedSearchGiayChungNhanResponse>? _updateDataGridAction;
 
     [ObservableProperty] private bool _isSearching;
@@ -48,9 +55,9 @@ public partial class CungCapThongTinViewModel : ViewModelBase
 
     [ObservableProperty] private string _searchInput = string.Empty;
 
-    [ObservableProperty] private ObservableCollection<string> _searchHistory = [];
+    [ObservableProperty] private ObservableCollection<SearchHistoryEntry> _searchHistory = [];
 
-    [ObservableProperty] private string? _selectedSearchHistory;
+    [ObservableProperty] private SearchHistoryEntry? _selectedSearchHistory;
 
     [ObservableProperty] private int _selectedSearchTabIndex;
 
@@ -86,6 +93,9 @@ public partial class CungCapThongTinViewModel : ViewModelBase
     {
         _searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
         _searchService.StatusChanged += OnSearchServiceStatusChanged;
+        var databaseService = new DatabaseService();
+        _searchHistoryService = new SearchHistoryService(databaseService);
+        _ = InitializeSearchHistoryAsync();
     }
 
     /// <summary>
@@ -127,11 +137,11 @@ public partial class CungCapThongTinViewModel : ViewModelBase
         OnPropertyChanged(nameof(StatusSummary));
     }
 
-    partial void OnSelectedSearchHistoryChanged(string? value)
+    partial void OnSelectedSearchHistoryChanged(SearchHistoryEntry? value)
     {
-        if (!string.IsNullOrWhiteSpace(value))
+        if (!string.IsNullOrWhiteSpace(value?.SearchQuery))
         {
-            SearchInput = value;
+            SearchInput = value.SearchQuery;
         }
     }
 
@@ -140,6 +150,12 @@ public partial class CungCapThongTinViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsSoGiayToMode));
         OnPropertyChanged(nameof(IsSoPhatHanhMode));
         OnPropertyChanged(nameof(IsThuaDatMode));
+        SelectedSearchHistory = null;
+        var searchTypeKey = GetSearchTypeKeyForTab(value);
+        if (!string.IsNullOrWhiteSpace(searchTypeKey))
+        {
+            _ = LoadSearchHistoryAsync(searchTypeKey);
+        }
     }
 
     private void OnSearchServiceStatusChanged(string message)
@@ -159,14 +175,14 @@ public partial class CungCapThongTinViewModel : ViewModelBase
 
         if (!string.IsNullOrWhiteSpace(SearchInput))
         {
-            AddToHistory(SearchInput);
-            var items = ParseInput(SearchInput, splitBySpace: true);
+            var input = SearchInput.Trim();
+            var items = ParseInput(input, splitBySpace: true);
             Log.Information("Parsed {Count} items: {Items}", items.Length, string.Join(", ", items));
 
             try
             {
                 Log.Information("Starting PerformSearchAsync...");
-                await PerformSearchAsync(items, async (item) =>
+                var foundCount = await PerformSearchAsync(items, async (item) =>
                 {
                     if (string.IsNullOrWhiteSpace(item))
                     {
@@ -230,6 +246,7 @@ public partial class CungCapThongTinViewModel : ViewModelBase
                     }
                 }, "số giấy tờ");
                 Log.Information("PerformSearchAsync completed");
+                await SaveSearchHistoryAsync(SearchTypeSoGiayToKey, input, items.Length, foundCount);
             }
             catch (Exception ex)
             {
@@ -249,13 +266,14 @@ public partial class CungCapThongTinViewModel : ViewModelBase
     {
         if (!string.IsNullOrWhiteSpace(SearchInput))
         {
-            AddToHistory(SearchInput);
-            var items = ParseInput(SearchInput, splitBySpace: false);
-            await PerformSearchAsync(items, async (item) =>
+            var input = SearchInput.Trim();
+            var items = ParseInput(input, splitBySpace: false);
+            var foundCount = await PerformSearchAsync(items, async (item) =>
             {
                 var modifiedItem = item.NormalizedSoPhatHanh();
                 return await _searchService.SearchAsync(soPhatHanh: modifiedItem);
             }, "số phát hành");
+            await SaveSearchHistoryAsync(SearchTypeSoPhatHanhKey, input, items.Length, foundCount);
         }
     }
 
@@ -311,35 +329,28 @@ public partial class CungCapThongTinViewModel : ViewModelBase
         }
     }
 
-    private void AddToHistory(string input)
+    private async Task SaveSearchHistoryAsync(
+        string searchTypeKey,
+        string input,
+        int searchItemCount,
+        int foundCount)
     {
-        var trimmed = input.Trim();
-        if (string.IsNullOrWhiteSpace(trimmed))
+        if (string.IsNullOrWhiteSpace(searchTypeKey))
         {
             return;
         }
 
-        if (SearchHistory.Contains(trimmed))
-        {
-            SearchHistory.Remove(trimmed);
-        }
-
-        SearchHistory.Insert(0, trimmed);
-
-        const int maxHistoryItems = 20;
-        if (SearchHistory.Count > maxHistoryItems)
-        {
-            SearchHistory.RemoveAt(SearchHistory.Count - 1);
-        }
+        await _searchHistoryService.UpsertAsync(searchTypeKey, input, searchItemCount, foundCount, DateTime.Now);
+        await LoadSearchHistoryAsync(searchTypeKey);
     }
 
-    private async Task PerformSearchAsync(
+    private async Task<int> PerformSearchAsync(
         string[] items,
         Func<string, Task<AdvancedSearchGiayChungNhanResponse?>> searchFunc,
         string searchType)
     {
         Log.Information("PerformSearchAsync called with {Count} items", items.Length);
-        if (items.Length == 0) return;
+        if (items.Length == 0) return 0;
 
         IsSearching = true;
         IsInitializing = true;
@@ -437,11 +448,14 @@ public partial class CungCapThongTinViewModel : ViewModelBase
             {
                 UpdateDataGridResults(allData);
             }
+
+            return FoundItems;
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Error trong PerformSearchAsync");
             SearchProgress = $"Lỗi: {ex.Message}";
+            return FoundItems;
         }
         finally
         {
@@ -490,5 +504,116 @@ public partial class CungCapThongTinViewModel : ViewModelBase
 
         // Gọi action để cập nhật DataGrid từ View
         _updateDataGridAction?.Invoke(combinedResponse);
+    }
+
+    private async Task InitializeSearchHistoryAsync()
+    {
+        try
+        {
+            await _searchHistoryService.InitializeAsync();
+            var searchTypeKey = GetSearchTypeKeyForTab(SelectedSearchTabIndex);
+            if (!string.IsNullOrWhiteSpace(searchTypeKey))
+            {
+                await LoadSearchHistoryAsync(searchTypeKey);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to initialize search history");
+        }
+    }
+
+    private async Task LoadSearchHistoryAsync(string searchTypeKey)
+    {
+        var history = await _searchHistoryService.GetHistoryAsync(searchTypeKey);
+        SearchHistory.Clear();
+        foreach (var entry in history)
+        {
+            SearchHistory.Add(entry);
+        }
+    }
+
+    [RelayCommand]
+    private void StartEditHistory(SearchHistoryEntry? entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        foreach (var item in SearchHistory)
+        {
+            item.IsEditing = false;
+        }
+
+        entry.EditingTitle = string.IsNullOrWhiteSpace(entry.Title) ? entry.DefaultTitle : entry.Title;
+        entry.IsEditing = true;
+    }
+
+    [RelayCommand]
+    private async Task SaveHistoryTitleAsync(SearchHistoryEntry? entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        var title = entry.EditingTitle?.Trim();
+        if (string.IsNullOrWhiteSpace(title) || title == entry.DefaultTitle)
+        {
+            title = null;
+        }
+
+        entry.Title = title;
+        entry.IsEditing = false;
+        await _searchHistoryService.UpdateTitleAsync(entry.Id, title);
+    }
+
+    [RelayCommand]
+    private void CancelEditHistory(SearchHistoryEntry? entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        entry.EditingTitle = entry.Title;
+        entry.IsEditing = false;
+    }
+
+    [RelayCommand]
+    private async Task SearchFromHistoryAsync(SearchHistoryEntry? entry)
+    {
+        if (entry == null)
+        {
+            return;
+        }
+
+        SearchInput = entry.SearchQuery;
+        switch (entry.SearchType)
+        {
+            case SearchTypeSoGiayToKey:
+                SelectedSearchTabIndex = 0;
+                await SearchBySoGiayToAsync();
+                break;
+            case SearchTypeSoPhatHanhKey:
+                SelectedSearchTabIndex = 1;
+                await SearchBySoPhatHanhAsync();
+                break;
+            case SearchTypeThuaDatKey:
+                SelectedSearchTabIndex = 2;
+                break;
+        }
+    }
+
+    private static string GetSearchTypeKeyForTab(int selectedTabIndex)
+    {
+        return selectedTabIndex switch
+        {
+            0 => SearchTypeSoGiayToKey,
+            1 => SearchTypeSoPhatHanhKey,
+            2 => SearchTypeThuaDatKey,
+            _ => string.Empty
+        };
     }
 }

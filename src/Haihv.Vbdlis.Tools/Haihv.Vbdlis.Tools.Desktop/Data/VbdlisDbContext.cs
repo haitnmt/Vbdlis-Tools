@@ -10,7 +10,7 @@ namespace Haihv.Vbdlis.Tools.Desktop.Data;
 /// <summary>
 /// DbContext cho VBDLIS Tools sử dụng Entity Framework Core với SQLite
 /// </summary>
-public class VbdlisDbContext : DbContext
+public class VbdlisDbContext(DbContextOptions<VbdlisDbContext> options) : DbContext(options)
 {
     /// <summary>
     /// Bảng Đơn vị hành chính cấp tỉnh
@@ -32,10 +32,10 @@ public class VbdlisDbContext : DbContext
     /// </summary>
     public DbSet<ThamChieuToBanDo> ThamChieuToBanDo { get; set; } = null!;
 
-    public VbdlisDbContext(DbContextOptions<VbdlisDbContext> options)
-        : base(options)
-    {
-    }
+    /// <summary>
+    /// Bảng lịch sử tìm kiếm
+    /// </summary>
+    public DbSet<SearchHistoryEntry> SearchHistoryEntries { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -81,6 +81,20 @@ public class VbdlisDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
         });
+
+        // Cấu hình cho SearchHistoryEntry
+        modelBuilder.Entity<SearchHistoryEntry>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.SearchType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.SearchQuery).IsRequired();
+            entity.Property(e => e.ResultCount).HasDefaultValue(0);
+            entity.Property(e => e.SearchItemCount).HasDefaultValue(0);
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.SearchedAt).IsRequired();
+            entity.HasIndex(e => new { e.SearchType, e.SearchQuery }).IsUnique();
+            entity.HasIndex(e => new { e.SearchType, e.SearchedAt });
+        });
     }
 
     /// <summary>
@@ -93,14 +107,21 @@ public class VbdlisDbContext : DbContext
 
         foreach (var entry in entries)
         {
-            if (entry.Entity is DvhcCapTinh tinh)
-                tinh.UpdatedAt = DateTime.UtcNow;
-            else if (entry.Entity is DvhcCapHuyen huyen)
-                huyen.UpdatedAt = DateTime.UtcNow;
-            else if (entry.Entity is DvhcCapXa xa)
-                xa.UpdatedAt = DateTime.UtcNow;
-            else if (entry.Entity is ThamChieuToBanDo thamChieu)
-                thamChieu.UpdatedAt = DateTime.UtcNow;
+            switch (entry.Entity)
+            {
+                case DvhcCapTinh tinh:
+                    tinh.UpdatedAt = DateTime.UtcNow;
+                    break;
+                case DvhcCapHuyen huyen:
+                    huyen.UpdatedAt = DateTime.UtcNow;
+                    break;
+                case DvhcCapXa xa:
+                    xa.UpdatedAt = DateTime.UtcNow;
+                    break;
+                case ThamChieuToBanDo thamChieu:
+                    thamChieu.UpdatedAt = DateTime.UtcNow;
+                    break;
+            }
         }
 
         return await base.SaveChangesAsync(cancellationToken);

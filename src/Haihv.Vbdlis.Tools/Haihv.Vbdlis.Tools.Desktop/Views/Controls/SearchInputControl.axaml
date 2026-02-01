@@ -1,20 +1,26 @@
 <UserControl
     x:Class="Haihv.Vbdlis.Tools.Desktop.Views.Controls.SearchInputControl"
+    x:Name="Root"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:conv="using:Haihv.Vbdlis.Tools.Desktop.Converters"
+    xmlns:entities="using:Haihv.Vbdlis.Tools.Desktop.Entities"
     xmlns:vm="using:Haihv.Vbdlis.Tools.Desktop.ViewModels"
     d:DesignHeight="450"
     d:DesignWidth="800"
     x:DataType="vm:CungCapThongTinViewModel"
     mc:Ignorable="d">
+    <UserControl.Resources>
+        <conv:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+    </UserControl.Resources>
     <StackPanel Spacing="12">
         <!--  Tìm theo Số Giấy Tờ  -->
         <Grid IsVisible="{Binding IsSoGiayToMode}" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="8">
             <TextBlock FontWeight="SemiBold" Text="Tìm theo Số Giấy Tờ" />
 
-            <Grid Grid.Row="1" RowDefinitions="*,Auto">
+            <Grid Grid.Row="1" RowDefinitions="*">
                 <TextBox
                     Grid.Row="0"
                     AcceptsReturn="True"
@@ -22,31 +28,84 @@
                     TextWrapping="Wrap"
                     MinLines="10"
                     Watermark="Hỗ trợ nhập nhiều mục, mỗi mục trên một dòng hoặc phân cách bằng dấu chấm phẩy ;. Nếu muốn giữ dấu cách, đặt trong dấu nháy &quot;&quot;." />
-                <Label
-                    Grid.Row="1"
-                    Content="Hỗ trợ nhập nhiều mục, mỗi mục trên một dòng hoặc phân cách bằng dấu chấm phẩy ;. Nếu muốn giữ dấu cách, đặt trong dấu nháy &quot;&quot;."
-                    VerticalAlignment="Stretch"
-                    FontSize="11"
-                    Foreground="Gray" />
             </Grid>
 
-            <Button
-                Grid.Row="2"
-                Command="{Binding SearchBySoGiayToCommand}"
-                Content="Tìm"
-                IsEnabled="{Binding !IsSearching}" />
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <Button
+                    Content="ⓘ"
+                    VerticalAlignment="Center"
+                    ToolTip.Tip="Hỗ trợ nhập nhiều mục, mỗi mục trên một dòng hoặc phân cách bằng dấu chấm phẩy ;. Nếu muốn giữ dấu cách, đặt trong dấu nháy &quot;&quot;.">
+                    <Button.Flyout>
+                        <Flyout>
+                            <TextBlock
+                                Text="Hỗ trợ nhập nhiều mục, mỗi mục trên một dòng hoặc phân cách bằng dấu chấm phẩy ;. Nếu muốn giữ dấu cách, đặt trong dấu nháy &quot;&quot;."
+                                TextWrapping="Wrap"
+                                MaxWidth="360" />
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+                <Button
+                    Grid.Column="1"
+                    Command="{Binding SearchBySoGiayToCommand}"
+                    Content="🔍 Tìm kiếm"
+                    HorizontalAlignment="Right"
+                    IsEnabled="{Binding !IsSearching}" />
+            </Grid>
 
             <ListBox
                 Grid.Row="3"
                 ItemsSource="{Binding SearchHistory}"
-                SelectedItem="{Binding SelectedSearchHistory}" />
+                DoubleTapped="OnSearchHistoryDoubleTapped"
+                SelectedItem="{Binding SelectedSearchHistory}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="entities:SearchHistoryEntry" x:CompileBindings="False">
+                        <StackPanel Spacing="2">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                                <TextBlock
+                                    Text="{Binding DisplayTitle}"
+                                    TextWrapping="Wrap"
+                                    IsVisible="{Binding IsEditing, Converter={StaticResource InverseBooleanConverter}}" />
+                                <TextBox
+                                    Grid.Column="0"
+                                    Text="{Binding EditingTitle, UpdateSourceTrigger=PropertyChanged}"
+                                    Tag="{Binding}"
+                                    IsVisible="{Binding IsEditing}"
+                                    KeyDown="OnHistoryTitleKeyDown"
+                                    LostFocus="OnHistoryTitleLostFocus" />
+                                <Button
+                                    Grid.Column="1"
+                                    x:CompileBindings="False"
+                                    Command="{Binding DataContext.StartEditHistoryCommand, ElementName=Root}"
+                                    CommandParameter="{Binding}"
+                                    Content="✎"
+                                    ToolTip.Tip="Sửa tiêu đề" />
+                                <Button
+                                    Grid.Column="2"
+                                    x:CompileBindings="False"
+                                    Command="{Binding DataContext.SearchFromHistoryCommand, ElementName=Root}"
+                                    CommandParameter="{Binding}"
+                                    Content="🔍"
+                                    ToolTip.Tip="Tìm theo lịch sử này" />
+                            </Grid>
+                            <TextBlock
+                                Text="{Binding DisplayTime}"
+                                FontSize="11"
+                                Foreground="Gray" />
+                            <TextBlock
+                                Text="{Binding DisplayDetail}"
+                                FontSize="11"
+                                Foreground="Gray" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </Grid>
 
         <!--  Tìm theo Số Phát Hành  -->
         <Grid IsVisible="{Binding IsSoPhatHanhMode}" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="8">
             <TextBlock FontWeight="SemiBold" Text="Tìm theo Số Phát Hành" />
 
-            <Grid Grid.Row="1" RowDefinitions="*,Auto">
+            <Grid Grid.Row="1" RowDefinitions="*">
                 <TextBox
                     Grid.Row="0"
                     AcceptsReturn="True"
@@ -54,23 +113,77 @@
                     TextWrapping="Wrap"
                     MinLines="10"
                     Watermark="Hỗ trợ nhập nhiều mục, mỗi mục trên một dòng hoặc phân cách bằng dấu chấm phẩy ;" />
-                <Label
-                    Grid.Row="1"
-                    Content="Hỗ trợ nhập nhiều mục, mỗi mục trên một dòng hoặc phân cách bằng dấu chấm phẩy ;"
-                    FontSize="11"
-                    Foreground="Gray" />
             </Grid>
 
-            <Button
-                Grid.Row="2"
-                Command="{Binding SearchBySoPhatHanhCommand}"
-                Content="Tìm"
-                IsEnabled="{Binding !IsSearching}" />
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <Button
+                    Content="ⓘ"
+                    VerticalAlignment="Center"
+                    ToolTip.Tip="Hỗ trợ nhập nhiều mục, mỗi mục trên một dòng hoặc phân cách bằng dấu chấm phẩy ;">
+                    <Button.Flyout>
+                        <Flyout>
+                            <TextBlock
+                                Text="Hỗ trợ nhập nhiều mục, mỗi mục trên một dòng hoặc phân cách bằng dấu chấm phẩy ;"
+                                TextWrapping="Wrap"
+                                MaxWidth="360" />
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+                <Button
+                    Grid.Column="1"
+                    Command="{Binding SearchBySoPhatHanhCommand}"
+                    Content="🔍 Tìm kiếm"
+                    HorizontalAlignment="Right"
+                    IsEnabled="{Binding !IsSearching}" />
+            </Grid>
 
             <ListBox
                 Grid.Row="3"
                 ItemsSource="{Binding SearchHistory}"
-                SelectedItem="{Binding SelectedSearchHistory}" />
+                DoubleTapped="OnSearchHistoryDoubleTapped"
+                SelectedItem="{Binding SelectedSearchHistory}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="entities:SearchHistoryEntry" x:CompileBindings="False">
+                        <StackPanel Spacing="2">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                                <TextBlock
+                                    Text="{Binding DisplayTitle}"
+                                    TextWrapping="Wrap"
+                                    IsVisible="{Binding IsEditing, Converter={StaticResource InverseBooleanConverter}}" />
+                                <TextBox
+                                    Grid.Column="0"
+                                    Text="{Binding EditingTitle, UpdateSourceTrigger=PropertyChanged}"
+                                    Tag="{Binding}"
+                                    IsVisible="{Binding IsEditing}"
+                                    KeyDown="OnHistoryTitleKeyDown"
+                                    LostFocus="OnHistoryTitleLostFocus" />
+                                <Button
+                                    Grid.Column="1"
+                                    x:CompileBindings="False"
+                                    Command="{Binding DataContext.StartEditHistoryCommand, ElementName=Root}"
+                                    CommandParameter="{Binding}"
+                                    Content="✎"
+                                    ToolTip.Tip="Sửa tiêu đề" />
+                                <Button
+                                    Grid.Column="2"
+                                    x:CompileBindings="False"
+                                    Command="{Binding DataContext.SearchFromHistoryCommand, ElementName=Root}"
+                                    CommandParameter="{Binding}"
+                                    Content="🔍"
+                                    ToolTip.Tip="Tìm theo lịch sử này" />
+                            </Grid>
+                            <TextBlock
+                                Text="{Binding DisplayTime}"
+                                FontSize="11"
+                                Foreground="Gray" />
+                            <TextBlock
+                                Text="{Binding DisplayDetail}"
+                                FontSize="11"
+                                Foreground="Gray" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </Grid>
 
         <!--  Tìm theo Thửa Đất (tạm thời disable)  -->
@@ -82,7 +195,10 @@
                 TextWrapping="Wrap"
                 IsEnabled="False"
                 Watermark="Chưa hỗ trợ" />
-            <Button Grid.Row="2" Content="Tìm" IsEnabled="False" />
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <Button Content="ⓘ" VerticalAlignment="Center" IsEnabled="False" />
+                <Button Grid.Column="1" Content="🔍 Tìm kiếm" HorizontalAlignment="Right" IsEnabled="False" />
+            </Grid>
             <ListBox Grid.Row="3" IsEnabled="False" />
         </Grid>
     </StackPanel>
