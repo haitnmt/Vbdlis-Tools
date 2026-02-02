@@ -168,19 +168,13 @@ jobs:
 
           <!-- APP_UPDATE_NOTES_START -->
           ### ✨ Có gì mới trong phiên bản này?
-          **v1.0.25121705 (17 Tháng 12, 2025)**
-          - Tối ưu hiển thị Số giấy tờ của Chủ sử dụng (Bổ sung loại giấy tờ)
+          **01 Tháng 02, 2026**
+          - Bổ sung chức năng cache cho tìm kiếm và cải thiện giao diện
+          - Bổ sung chức năng quản lý lịch sử tìm kiếm
+          - Cải thiện quản lý đăng nhập và ghi log lỗi
 
-          **v1.0.25121704 (17 Tháng 12, 2025)**
-          - Tối ưu hóa logic xử lý hiển thị ghi chú phát hành
-
-          **v1.0.25121703 (17 Tháng 12, 2025)**
-          - Sửa lỗi không hiển thị thông tin ghi chú phát hành khi kiểm tra bản cập nhật.
-
-          **v1.0.25121702 (17 Tháng 12, 2025)**
-          - Cập nhật thông tin ghi chú phát hành trong quá trình kiểm tra bản cập nhật.
-          - Sửa lỗi không lấy được thông tin chủ sử dụng là tổ chức khi có mã loại tổ chức.
-          - Thêm tính năng xuất dữ liệu ra file Excel với hộp thoại lưu file và bổ sung thông báo trạng thái sau khi xuất file thành công
+          **31 Tháng 01, 2026**
+          - Tái cầu trúc giao diện chức năng tìm kiếm.
           <!-- APP_UPDATE_NOTES_END -->
 
           ### 📦 Tải về
