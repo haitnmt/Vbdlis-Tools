@@ -26,7 +26,8 @@
                     AcceptsReturn="True"
                     Text="{Binding SearchInput, UpdateSourceTrigger=PropertyChanged}"
                     TextWrapping="Wrap"
-                    MinLines="10"
+                    MinLines="5"
+                    MaxLines="10"
                     Watermark="Hỗ trợ nhập nhiều mục, mỗi mục trên một dòng hoặc phân cách bằng dấu chấm phẩy ;. Nếu muốn giữ dấu cách, đặt trong dấu nháy &quot;&quot;." />
             </Grid>
 
@@ -125,7 +126,8 @@
                     AcceptsReturn="True"
                     Text="{Binding SearchInput, UpdateSourceTrigger=PropertyChanged}"
                     TextWrapping="Wrap"
-                    MinLines="10"
+                    MinLines="5"
+                    MaxLines="10"
                     Watermark="Hỗ trợ nhập nhiều mục, mỗi mục trên một dòng hoặc phân cách bằng dấu chấm phẩy ;" />
             </Grid>
 
