@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="compose.yaml"/>
+  </Folder>
   <Project Path="Haihv.Helpers.Strings/Haihv.Helpers.Strings.csproj" Id="f034d1a1-91bb-4a31-9d30-1ce7b4b05490" />
+  <Project Path="Haihv.Vbdlis.Tools.Api.Playwright/Haihv.Vbdlis.Tools.Api.Playwright.csproj"/>
   <Project Path="Haihv.Vbdlis.Tools.Desktop/Haihv.Vbdlis.Tools.Desktop.csproj" Id="a281f979-b1be-4f83-ae34-d6195a095cd3" />
 </Solution>

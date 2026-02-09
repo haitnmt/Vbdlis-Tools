@@ -1,0 +1,7 @@
+﻿services:
+  haihv.vbdlis.tools.api.playwright:
+    image: haihv.vbdlis.tools.api.playwright
+    build:
+      context: .
+      dockerfile: Haihv.Vbdlis.Tools.Api.Playwright/Dockerfile
+

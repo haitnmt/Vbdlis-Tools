@@ -1,0 +1,3 @@
+GET https://{{HostAddress}}/weatherforecast/
+Accept: application/json
+
