@@ -15,9 +15,10 @@
     <UserControl.Resources>
         <conv:InverseBooleanConverter x:Key="InverseBooleanConverter" />
     </UserControl.Resources>
-    <StackPanel Spacing="12">
+    <DockPanel Margin="12" LastChildFill="True">
         <!--  Tìm theo Số Giấy Tờ  -->
-        <Grid IsVisible="{Binding IsSoGiayToMode}" RowDefinitions="Auto,*,Auto,Auto,Auto" RowSpacing="8">
+        <Grid IsVisible="{Binding IsSoGiayToMode}" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="8"
+              DockPanel.Dock="Top">
             <TextBlock FontWeight="SemiBold" Text="Tìm theo Số Giấy Tờ" />
 
             <Grid Grid.Row="1" RowDefinitions="*">
@@ -26,8 +27,8 @@
                     AcceptsReturn="True"
                     Text="{Binding SearchInput, UpdateSourceTrigger=PropertyChanged}"
                     TextWrapping="Wrap"
-                    MinLines="5"
-                    MaxLines="15"
+                    MaxLines="26"
+                    MinLines="26"
                     Watermark="Hỗ trợ nhập nhiều mục, mỗi mục trên một dòng hoặc phân cách bằng dấu chấm phẩy ; hoặc dấu cách. Nếu muốn giữ dấu cách, đặt trong dấu nháy &quot;&quot;." />
             </Grid>
 
@@ -71,6 +72,8 @@
                 Grid.Row="4"
                 ItemsSource="{Binding SearchHistory}"
                 DoubleTapped="OnSearchHistoryDoubleTapped"
+                ScrollViewer.AllowAutoHide="True"
+                ScrollViewer.HorizontalScrollBarVisibility="Visible"
                 SelectedItem="{Binding SelectedSearchHistory}">
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="entities:SearchHistoryEntry" x:CompileBindings="False">
@@ -117,7 +120,10 @@
         </Grid>
 
         <!--  Tìm theo Số Phát Hành  -->
-        <Grid IsVisible="{Binding IsSoPhatHanhMode}" RowDefinitions="Auto,*,Auto,Auto,Auto" RowSpacing="8">
+        <Grid IsVisible="{Binding IsSoPhatHanhMode}" 
+              RowDefinitions="Auto,Auto,Auto,Auto,*" 
+              DockPanel.Dock="Top"
+              RowSpacing="8">
             <TextBlock FontWeight="SemiBold" Text="Tìm theo Số Phát Hành" />
 
             <Grid Grid.Row="1" RowDefinitions="*">
@@ -126,8 +132,8 @@
                     AcceptsReturn="True"
                     Text="{Binding SearchInput, UpdateSourceTrigger=PropertyChanged}"
                     TextWrapping="Wrap"
-                    MinLines="5"
-                    MaxLines="15"
+                    MaxLines="26"
+                    MinLines="26"
                     Watermark="Hỗ trợ nhập nhiều mục, mỗi mục trên một dòng hoặc phân cách bằng dấu chấm phẩy ;" />
             </Grid>
 
@@ -169,8 +175,11 @@
 
             <ListBox
                 Grid.Row="4"
+                MaxHeight="600"
                 ItemsSource="{Binding SearchHistory}"
                 DoubleTapped="OnSearchHistoryDoubleTapped"
+                ScrollViewer.VerticalScrollBarVisibility="Auto"
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 SelectedItem="{Binding SelectedSearchHistory}">
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="entities:SearchHistoryEntry" x:CompileBindings="False">
@@ -217,7 +226,10 @@
         </Grid>
 
         <!--  Tìm theo Thửa Đất (tạm thời disable)  -->
-        <Grid IsVisible="{Binding IsThuaDatMode}" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="8">
+        <Grid IsVisible="{Binding IsThuaDatMode}" 
+              RowDefinitions="Auto,Auto,Auto,Auto" 
+              DockPanel.Dock="Top"
+              RowSpacing="8">
             <TextBlock FontWeight="SemiBold" Text="Tìm theo Thửa Đất" />
             <TextBox
                 Grid.Row="1"
@@ -231,5 +243,5 @@
             </Grid>
             <ListBox Grid.Row="3" IsEnabled="False" />
         </Grid>
-    </StackPanel>
+    </DockPanel>
 </UserControl>

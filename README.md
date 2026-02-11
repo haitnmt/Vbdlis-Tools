@@ -4,22 +4,30 @@ Công cụ hỗ trợ làm việc với hệ thống VBDLIS.
 
 ## 🚀 Bắt đầu nhanh
 
-### Build local (Windows)
+### Build Desktop Project
 
+#### Windows
 ```powershell
-# Build local với tự động tăng version
-.\build-local.ps1
+# Build từ root directory
+.\build-desktop-windows.ps1
+
+# Hoặc build trực tiếp từ project directory
+cd src\Haihv.Vbdlis.Tools\Haihv.Vbdlis.Tools.Desktop\build-scripts
+.\build-local-windows.ps1
 
 # Output: dist/velopack/VbdlisTools-{version}-Setup.zip
 ```
 
-### Build local (macOS)
-
+#### macOS
 ```bash
-# Build local với tự động tăng version
+# Build từ root directory
+./build-desktop-macos.sh
+
+# Hoặc build trực tiếp từ project directory
+cd src/Haihv.Vbdlis.Tools/Haihv.Vbdlis.Tools.Desktop/build-scripts
 ./build-local-macos.sh
 
-# Output: dist/velopack-macos-local/VbdlisTools-{version}-osx-arm64.dmg
+# Output: dist/velopack/VbdlisTools-{version}-osx-arm64.dmg
 ```
 
 ---
@@ -28,10 +36,10 @@ Công cụ hỗ trợ làm việc với hệ thống VBDLIS.
 
 ```powershell
 # Bước 1: Build local (tự động tăng version)
-.\build-local.ps1
+.\build-desktop-windows.ps1
 
-# Bước 2: Tạo release (sử dụng version từ build-local.ps1)
-.\create-release.ps1
+# Bước 2: Tạo release (sử dụng version từ build)
+.\create-desktop-release.ps1
 
 # GitHub Actions sẽ:
 # - Build Windows ONLY (không tăng version)
@@ -45,53 +53,68 @@ Công cụ hỗ trợ làm việc với hệ thống VBDLIS.
 
 ## 🔧 Build Scripts
 
+### Root Level Scripts (Wrappers)
 | Script | Platform | Mục đích |
 |--------|----------|---------|
-| **build-local.ps1** | Windows | Build local với tự động tăng version |
-| **build-local-macos.sh** | macOS | Build local với tự động tăng version |
-| **build\windows-velopack.ps1** | Windows | Script build (được gọi bởi build-local.ps1 và GitHub Actions) |
+| **build-desktop-windows.ps1** | Windows | Build Desktop project (wrapper) |
+| **build-desktop-macos.sh** | macOS | Build Desktop project (wrapper) |
+| **create-desktop-release.ps1** | Cross | Tạo GitHub release cho Desktop (wrapper) |
+
+### Project Level Scripts
+Mỗi project có thư mục `build-scripts` riêng:
+- **Desktop**: `src/Haihv.Vbdlis.Tools/Haihv.Vbdlis.Tools.Desktop/build-scripts/`
+  - `build-local-windows.ps1` - Build Windows với Velopack
+  - `build-local-macos.sh` - Build macOS với Velopack
+  - `create-release.ps1` - Tạo GitHub release
+  - `version.json` - Quản lý version
+  - `README.md` - Hướng dẫn chi tiết
 
 ---
 
 ## 📝 Quản lý Version
 
-Format version: `Major.Minor.YYMMDDBB`
-- Ví dụ: `1.0.25121001`
-  - `1.0` - Major.Minor version
-  - `251210` - Ngày (2025-12-10)
-  - `01` - Build number (tăng theo ngày)
+Version format sử dụng hai chuẩn khác nhau:
+- **Package Version** (SemVer2 - 3 parts): `Major.Minor.yyMMDDBB` - Cho Velopack
+- **Assembly Version** (4 parts): `Major.Minor.yyMM.DDBB` - Cho .NET
 
-### File Version: `build/version.json`
+Ví dụ cho build ngày 11/02/2026, build #2:
+- Package Version: `1.0.26021102` (dùng cho Velopack installer)
+- Assembly Version: `1.0.2602.1102` (dùng cho .NET runtime)
+- File Version: `1.0.2602.1102` (hiển thị trong file properties)
+
+### File Version
+
+Mỗi project có file `version.json` riêng trong thư mục `build-scripts/`:
+- Desktop: `src/Haihv.Vbdlis.Tools/Haihv.Vbdlis.Tools.Desktop/build-scripts/version.json`
 
 ```json
 {
   "majorMinor": "1.0",
-  "currentVersion": "1.0.25121001",
-  "assemblyVersion": "1.0.2512.1001",
-  "lastBuildDate": "2025-12-10",
-  "buildNumber": 1,
-  "platforms": {
-    "windows": {
-      "lastBuilt": "2025-12-10T07:45:00",
-      "version": "1.0.25121001"
-    },
-    "macos": {
-      "lastBuilt": "",
-      "version": ""
+  "currentVersion": "1.0.26021102",
+  "assemblyVersion": "1.0.2602.1102",
+  "lastBuildDate": "2026-02-11",
+  "dateCode": "2602",
+  "buildNumber": 2,
+  "history": [
+    {
+      "version": "1.0.26021102",
+      "date": "2026-02-11",
+      "timestamp": "2026-02-11 11:15:30"
     }
-  }
+  ]
 }
 ```
 
 ### Cơ chế tự động tăng Version
 
-- **Local builds** (`build-local.ps1` hoặc `build-local-macos.sh`):
+- **Local builds** (project-level scripts):
   - ✅ Tự động tăng version
-  - ✅ Cập nhật `build/version.json`
-  - ✅ Cập nhật file `.csproj`
+  - ✅ Cập nhật `build-scripts/version.json`
+  - ✅ Cập nhật file `.csproj` khi build
+  - 📝 Lưu lịch sử build
 
 - **GitHub Actions** (`.github/workflows/release.yml`):
-  - 🔒 Sử dụng version ĐÃ KHÓA từ `build/version.json`
+  - 🔒 Sử dụng version ĐÃ KHÓA từ `version.json`
   - ❌ KHÔNG tự động tăng version
   - ✅ Build Windows ONLY
 

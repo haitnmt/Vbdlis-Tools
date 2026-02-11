@@ -5,6 +5,11 @@ on:
     tags:
       - "v*.*.*" # Triggers on version tags like v1.0.25120901
   workflow_dispatch: # Allow manual trigger
+    inputs:
+      app_update_notes:
+        description: "Noi dung APP_UPDATE_NOTES (markdown, co the xuong dong)"
+        required: false
+        type: string
 
 jobs:
   prepare-version:
@@ -21,18 +26,33 @@ jobs:
       - name: Get version from tag (uses version.json - no auto-increment)
         id: get-version
         run: |
+          VERSION_FILE="src/Haihv.Vbdlis.Tools/Haihv.Vbdlis.Tools.Desktop/build-scripts/version.json"
+          if [ ! -f "$VERSION_FILE" ]; then
+            echo "❌ Version file not found: $VERSION_FILE"
+            exit 1
+          fi
+
+          FILE_VERSION=$(grep -o '"currentVersion"[[:space:]]*:[[:space:]]*"[^"]*"' "$VERSION_FILE" | cut -d'"' -f4)
+          ASSEMBLY_VERSION=$(grep -o '"assemblyVersion"[[:space:]]*:[[:space:]]*"[^"]*"' "$VERSION_FILE" | cut -d'"' -f4)
+          if [ -z "$FILE_VERSION" ] || [ -z "$ASSEMBLY_VERSION" ]; then
+            echo "❌ Missing currentVersion or assemblyVersion in $VERSION_FILE"
+            exit 1
+          fi
+
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             # Extract version from tag (e.g., v1.0.25120901 -> 1.0.25120901)
             VERSION="${GITHUB_REF#refs/tags/v}"
             TAG_NAME="${GITHUB_REF#refs/tags/}"
+            if [ "$VERSION" != "$FILE_VERSION" ]; then
+              echo "❌ Tag version ($VERSION) does not match locked version.json ($FILE_VERSION)"
+              echo "Please run local build script first, then create release tag from create-release.ps1."
+              exit 1
+            fi
           else
             # Read from version.json (for manual trigger)
-            VERSION=$(cat build/version.json | grep -o '"currentVersion"[[:space:]]*:[[:space:]]*"[^"]*"' | cut -d'"' -f4)
+            VERSION="$FILE_VERSION"
             TAG_NAME="v$VERSION"
           fi
-
-          # Read assembly version from version.json
-          ASSEMBLY_VERSION=$(cat build/version.json | grep -o '"assemblyVersion"[[:space:]]*:[[:space:]]*"[^"]*"' | cut -d'"' -f4)
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "assembly-version=$ASSEMBLY_VERSION" >> $GITHUB_OUTPUT
@@ -65,7 +85,50 @@ jobs:
         shell: pwsh
 
       - name: Build Windows with Velopack (uses locked version from version.json)
-        run: .\build\windows-velopack.ps1
+        run: |
+          $ProjectPath = "src\Haihv.Vbdlis.Tools\Haihv.Vbdlis.Tools.Desktop"
+          $ProjectFile = Join-Path $ProjectPath "Haihv.Vbdlis.Tools.Desktop.csproj"
+          $PublishPath = Join-Path $ProjectPath "bin\publish\velopack"
+          $OutputPath = Join-Path $ProjectPath "dist\velopack"
+          $Version = "${{ needs.prepare-version.outputs.version }}"
+          $AssemblyVersion = "${{ needs.prepare-version.outputs.assembly-version }}"
+
+          Write-Host "Cleaning previous outputs..." -ForegroundColor Yellow
+          if (Test-Path $PublishPath) { Remove-Item $PublishPath -Recurse -Force }
+          if (Test-Path $OutputPath) { Remove-Item $OutputPath -Recurse -Force }
+          New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
+
+          Write-Host "Building Windows with locked version..." -ForegroundColor Yellow
+          dotnet publish $ProjectFile `
+            -c Release `
+            -o $PublishPath `
+            -r win-x64 `
+            --self-contained `
+            -p:Version=$Version `
+            -p:AssemblyVersion=$AssemblyVersion `
+            -p:FileVersion=$AssemblyVersion `
+            -p:InformationalVersion=$Version
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "❌ Build failed" -ForegroundColor Red
+            exit 1
+          }
+
+          Write-Host "Packaging with Velopack..." -ForegroundColor Yellow
+          vpk pack `
+            --packId "VbdlisTools" `
+            --packVersion $Version `
+            --packDir $PublishPath `
+            --mainExe "Haihv.Vbdlis.Tools.Desktop.exe" `
+            --outputDir $OutputPath `
+            --icon "$ProjectPath\Assets\appicon.ico" `
+            --packTitle "VBDLIS Tools" `
+            --packAuthors "Haihv"
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "❌ Packaging failed" -ForegroundColor Red
+            exit 1
+          }
         shell: pwsh
         env:
           GITHUB_ACTIONS: "true"
@@ -75,11 +138,11 @@ jobs:
         with:
           name: windows-release
           path: |
-            dist/velopack/*-Setup.zip
-            dist/velopack/*.nupkg
-            dist/velopack/RELEASES
-            dist/velopack/releases.win.json
-            dist/velopack/assets.win.json
+            src/Haihv.Vbdlis.Tools/Haihv.Vbdlis.Tools.Desktop/dist/velopack/*-Setup.zip
+            src/Haihv.Vbdlis.Tools/Haihv.Vbdlis.Tools.Desktop/dist/velopack/*.nupkg
+            src/Haihv.Vbdlis.Tools/Haihv.Vbdlis.Tools.Desktop/dist/velopack/RELEASES
+            src/Haihv.Vbdlis.Tools/Haihv.Vbdlis.Tools.Desktop/dist/velopack/releases.win.json
+            src/Haihv.Vbdlis.Tools/Haihv.Vbdlis.Tools.Desktop/dist/velopack/assets.win.json
           retention-days: 5
 
   # Temporarily disabled - MacOS build
@@ -150,6 +213,8 @@ jobs:
 
       - name: Generate release notes
         id: release-notes
+        env:
+          APP_UPDATE_NOTES_INPUT: ${{ github.event.inputs.app_update_notes }}
         run: |
           VERSION="${{ needs.prepare-version.outputs.version }}"
           TAG_NAME="${{ needs.prepare-version.outputs.tag-name }}"
@@ -163,54 +228,56 @@ jobs:
             CHANGELOG_URL="https://github.com/${{ github.repository }}/commits/${TAG_NAME}"
           fi
 
-          cat > release-notes.md << 'EOF'
-          ## 🎉 VBDLIS Tools v$VERSION
+          if [ -n "${APP_UPDATE_NOTES_INPUT:-}" ]; then
+            APP_UPDATE_NOTES="$APP_UPDATE_NOTES_INPUT"
+          else
+            VERSION_FILE="src/Haihv.Vbdlis.Tools/Haihv.Vbdlis.Tools.Desktop/build-scripts/version.json"
+            if [ -f "$VERSION_FILE" ]; then
+              APP_UPDATE_NOTES=$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1], encoding="utf-8")); print(d.get("appUpdateNotes",""))' "$VERSION_FILE")
+            fi
+          fi
 
-          <!-- APP_UPDATE_NOTES_START -->
-          ### ✨ Có gì mới trong phiên bản này?
-          **01 Tháng 02, 2026**
-          - Bổ sung chức năng cache cho tìm kiếm và cải thiện giao diện
-          - Bổ sung chức năng quản lý lịch sử tìm kiếm
-          - Cải thiện quản lý đăng nhập và ghi log lỗi
+          if [ -z "${APP_UPDATE_NOTES:-}" ]; then
+            APP_UPDATE_NOTES=$'**01 Tháng 02, 2026**\n- Bổ sung chức năng cache cho tìm kiếm và cải thiện giao diện\n- Bổ sung chức năng quản lý lịch sử tìm kiếm\n- Cải thiện quản lý đăng nhập và ghi log lỗi\n\n**31 Tháng 01, 2026**\n- Tái cầu trúc giao diện chức năng tìm kiếm.'
+          fi
 
-          **31 Tháng 01, 2026**
-          - Tái cầu trúc giao diện chức năng tìm kiếm.
-          <!-- APP_UPDATE_NOTES_END -->
-
-          ### 📦 Tải về
-
-          #### Windows
-          - **Haihv.Vbdlis.Tools.Desktop-win-Setup.zip** - Bộ cài đặt cho Windows (giải nén và chạy Setup.exe)
-          - Hỗ trợ tự động cập nhật qua Velopack
-          - **Lưu ý:** Tải file ZIP để tránh cảnh báo của trình duyệt
-
-          ### 🚀 Cài đặt
-
-          **Windows:**
-          1. Tải file `Haihv.Vbdlis.Tools.Desktop-win-Setup.zip`
-          2. Giải nén file ZIP
-          3. Chạy `Haihv.Vbdlis.Tools.Desktop-win-Setup.exe`
-          4. Ứng dụng sẽ tự động cập nhật khi có phiên bản mới
-
-          ### ⚠️ Lưu ý quan trọng
-
-          - **Trình duyệt Playwright**:
-            - Lần chạy đầu tiên, ứng dụng sẽ tải các trình duyệt Playwright cần thiết (khoảng 200MB)
-            - Vui lòng đảm bảo kết nối internet ổn định trong lần chạy đầu tiên
-          - **Tự động cập nhật**: Ứng dụng tự động kiểm tra và cập nhật phiên bản mới
-          - **Yêu cầu tối thiểu**:
-            - Windows: Windows 10 64-bit trở lên
-            - ~200MB dung lượng ổ đĩa (bao gồm trình duyệt Playwright)
-            
-          ---
-
-          **Nhật ký thay đổi đầy đủ**: $CHANGELOG_URL
-          EOF
-
-          # Replace $VERSION with actual version
-          sed -i "s/\$VERSION/$VERSION/g" release-notes.md
-          # Replace changelog URL placeholder
-          sed -i "s|\$CHANGELOG_URL|$CHANGELOG_URL|g" release-notes.md
+          {
+            echo "## 🎉 VBDLIS Tools v$VERSION"
+            echo
+            echo "<!-- APP_UPDATE_NOTES_START -->"
+            echo "### ✨ Có gì mới trong phiên bản này?"
+            printf '%s\n' "$APP_UPDATE_NOTES"
+            echo "<!-- APP_UPDATE_NOTES_END -->"
+            echo
+            echo "### 📦 Tải về"
+            echo
+            echo "#### Windows"
+            echo "- **Haihv.Vbdlis.Tools.Desktop-win-Setup.zip** - Bộ cài đặt cho Windows (giải nén và chạy Setup.exe)"
+            echo "- Hỗ trợ tự động cập nhật qua Velopack"
+            echo "- **Lưu ý:** Tải file ZIP để tránh cảnh báo của trình duyệt"
+            echo
+            echo "### 🚀 Cài đặt"
+            echo
+            echo "**Windows:**"
+            echo "1. Tải file \`Haihv.Vbdlis.Tools.Desktop-win-Setup.zip\`"
+            echo "2. Giải nén file ZIP"
+            echo "3. Chạy \`Haihv.Vbdlis.Tools.Desktop-win-Setup.exe\`"
+            echo "4. Ứng dụng sẽ tự động cập nhật khi có phiên bản mới"
+            echo
+            echo "### ⚠️ Lưu ý quan trọng"
+            echo
+            echo "- **Trình duyệt Playwright**:"
+            echo "  - Lần chạy đầu tiên, ứng dụng sẽ tải các trình duyệt Playwright cần thiết (khoảng 200MB)"
+            echo "  - Vui lòng đảm bảo kết nối internet ổn định trong lần chạy đầu tiên"
+            echo "- **Tự động cập nhật**: Ứng dụng tự động kiểm tra và cập nhật phiên bản mới"
+            echo "- **Yêu cầu tối thiểu**:"
+            echo "  - Windows: Windows 10 64-bit trở lên"
+            echo "  - ~200MB dung lượng ổ đĩa (bao gồm trình duyệt Playwright)"
+            echo
+            echo "---"
+            echo
+            echo "**Nhật ký thay đổi đầy đủ**: $CHANGELOG_URL"
+          } > release-notes.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

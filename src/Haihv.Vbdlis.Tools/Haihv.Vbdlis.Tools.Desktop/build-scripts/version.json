@@ -1,0 +1,36 @@
+{
+  "majorMinor": "1.0",
+  "currentVersion": "1.0.26021105",
+  "assemblyVersion": "1.0.2602.1105",
+  "buildNumber": 5,
+  "lastBuildDate": "2026-02-11",
+  "dateCode": "2602",
+  "appUpdateNotes": "**11 Tháng 02, 2026**\n- Sửa lỗi và Cải thiện giao diện tìm kiếm.**01 Tháng 02, 2026**\n- Bổ sung chức năng cache cho tìm kiếm và cải thiện giao diện\n- Bổ sung chức năng quản lý lịch sử tìm kiếm\n- Cải thiện quản lý đăng nhập và ghi log lỗi\n\n**31 Tháng 01, 2026**\n- Tái cầu trúc giao diện chức năng tìm kiếm.",
+  "history": [
+    {
+      "version": "1.0.26021101",
+      "date": "2026-02-11",
+      "timestamp": "2026-02-11 11:30:35"
+    },
+    {
+      "version": "1.0.26021102",
+      "date": "2026-02-11",
+      "timestamp": "2026-02-11 13:33:36"
+    },
+    {
+      "version": "1.0.26021103",
+      "date": "2026-02-11",
+      "timestamp": "2026-02-11 13:40:09"
+    },
+    {
+      "version": "1.0.26021104",
+      "date": "2026-02-11",
+      "timestamp": "2026-02-11 13:43:31"
+    },
+    {
+      "version": "1.0.26021105",
+      "date": "2026-02-11",
+      "timestamp": "2026-02-11 13:44:44"
+    }
+  ]
+}
